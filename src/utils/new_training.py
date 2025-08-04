@@ -1,5 +1,5 @@
 """
-Enhanced training functions based on existing utils training files
+training functions based on existing training files with metrics added
 """
 
 import torch
