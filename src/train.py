@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Comprehensive training script for FL-Purification
 Supports individual model training, pipeline training, and data preparation

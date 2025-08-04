@@ -53,33 +53,8 @@ ATTACK_CONFIGS = {
     }
 }
 
-class SimpleCNN(nn.Module):
-    """Simple CNN for attack generation"""
-    def __init__(self, num_classes, channels=3):
-        super(SimpleCNN, self).__init__()
-        self.features = nn.Sequential(
-            nn.Conv2d(channels, 32, 3, padding=1),
-            nn.ReLU(),
-            nn.MaxPool2d(2),
-            nn.Conv2d(32, 64, 3, padding=1),
-            nn.ReLU(),
-            nn.MaxPool2d(2),
-            nn.Conv2d(64, 128, 3, padding=1),
-            nn.ReLU(),
-            nn.AdaptiveAvgPool2d((1, 1))
-        )
-        self.classifier = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(128, 64),
-            nn.ReLU(),
-            nn.Dropout(0.5),
-            nn.Linear(64, num_classes)
-        )
-    
-    def forward(self, x):
-        x = self.features(x)
-        x = self.classifier(x)
-        return x
+from models.resnet18 import BasicBlock, ResNet18_MedMNIST
+
 
 def fgsm_attack(model, images, labels, epsilon=0.3):
     """Fast Gradient Sign Method attack"""
@@ -204,7 +179,7 @@ def prepare_dataset_comprehensive(dataset_name, device='cuda', max_samples_per_s
     
     num_classes = AVAILABLE_DATASETS[dataset_name]['num_classes']
     channels = AVAILABLE_DATASETS[dataset_name]['channels']
-    model = SimpleCNN(num_classes=num_classes, channels=channels).to(device)
+    model = ResNet18_MedMNIST(num_classes=num_classes).to(device)
     
     splits = ['train', 'val', 'test']
     batch_size = 32
