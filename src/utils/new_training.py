@@ -13,20 +13,13 @@ from skimage.metrics import peak_signal_noise_ratio as compute_psnr
 from skimage.metrics import structural_similarity as compute_ssim
 import lpips
 import numpy as np
-
-# Import models
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'models'))
-try:
-    from Denoising_Autoencoder import DenoisingAutoEncoder
-    from Hypernet_Reformer import AdaptiveLaplacianPyramidUNet
-    from Resnet_18 import ResNet18_MedMNIST
-    from models.AE import SimpleAutoencoder
-except ImportError:
-    # Fallback for different import structure
-    pass
-
-from utils import batch_psnr_ssim
+from models.DAE import DenoisingAutoEncoder
+from models.hypernet import AdaptiveLaplacianPyramidUNet
+from models.resnet18 import ResNet18_MedMNIST
+from models.AE import SimpleAutoencoder
+from utils.utils import batch_psnr_ssim
 
 def train_autoencoder(model, train_loader, val_loader, device, num_epochs=10, learning_rate=1e-3, config=None):
     """Enhanced autoencoder training based on AE_train.py"""
