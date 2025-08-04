@@ -1,3 +1,4 @@
+# Model used for attack generation
 import torch.nn as nn
 
 class SimpleCNN(nn.Module):

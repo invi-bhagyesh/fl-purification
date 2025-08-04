@@ -1,3 +1,4 @@
+ # Detector
 import torchvision.transforms.functional as F
 import torch.nn as nn
 class SimpleAutoencoder(nn.Module):
