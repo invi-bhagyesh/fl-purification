@@ -173,8 +173,8 @@ def generate_attacks_for_strength(model, dataloader, attack_type, strength, devi
     return (torch.cat(clean_images), torch.cat(clean_labels), 
             torch.cat(adv_images), torch.cat(adv_labels))
 
-def prepare_dataset_comprehensive(dataset_name, device='cuda', max_samples_per_split=1000):
-    """Prepare comprehensive dataset with all attack types and strengths"""
+def prepare_dataset_comprehensive(dataset_name, device='cuda'):
+    """Prepare comprehensive dataset with all attack types and strengths, half adversarial half clean."""
     print(f"Preparing comprehensive dataset for {dataset_name}...")
     
     num_classes = AVAILABLE_DATASETS[dataset_name]['num_classes']
@@ -182,7 +182,7 @@ def prepare_dataset_comprehensive(dataset_name, device='cuda', max_samples_per_s
     model = ResNet18_MedMNIST(num_classes=num_classes).to(device)
     
     splits = ['train', 'val', 'test']
-    batch_size = 32
+    batch_size = 64
     
     for split in splits:
         print(f"\nProcessing {split} split...")
@@ -193,14 +193,9 @@ def prepare_dataset_comprehensive(dataset_name, device='cuda', max_samples_per_s
             print(f"Error loading {split} split: {e}")
             continue
         
-        # Limit samples for faster processing
-        limited_dataloader = []
-        sample_count = 0
+        all_samples = []
         for batch in dataloader:
-            limited_dataloader.append(batch)
-            sample_count += batch[0].size(0)
-            if sample_count >= max_samples_per_split:
-                break
+            all_samples.append(batch)
         
         attack_types = ['fgsm', 'pgd', 'carlini']
         strengths = ['weak', 'medium', 'strong']
@@ -211,17 +206,24 @@ def prepare_dataset_comprehensive(dataset_name, device='cuda', max_samples_per_s
                 
                 try:
                     clean_images, clean_labels, adv_images, adv_labels = generate_attacks_for_strength(
-                        model, limited_dataloader, attack_type, strength, device
+                        model, all_samples, attack_type, strength, device
                     )
+                    
+                    # Use half of each for the final dataset
+                    half_len = len(clean_images) // 2
+                    clean_images_half = clean_images[:half_len]
+                    clean_labels_half = clean_labels[:half_len]
+                    adv_images_half = adv_images[:half_len]
+                    adv_labels_half = adv_labels[:half_len]
                     
                     save_path = os.path.join(KAGGLE_DATA_DIR, dataset_name, attack_type, strength, 'splits')
                     os.makedirs(save_path, exist_ok=True)
                     
                     data = {
-                        'clean_images': clean_images,
-                        'clean_labels': clean_labels,
-                        'adv_images': adv_images,
-                        'adv_labels': adv_labels,
+                        'clean_images': clean_images_half,
+                        'clean_labels': clean_labels_half,
+                        'adv_images': adv_images_half,
+                        'adv_labels': adv_labels_half,
                         'attack_type': attack_type,
                         'strength': strength,
                         'split': split,
@@ -231,7 +233,7 @@ def prepare_dataset_comprehensive(dataset_name, device='cuda', max_samples_per_s
                     with open(os.path.join(save_path, f'{split}.pkl'), 'wb') as f:
                         pickle.dump(data, f)
                     
-                    print(f"    Saved {split} data for {attack_type} {strength}: {len(clean_images)} samples")
+                    print(f"    Saved {split} data for {attack_type} {strength}: {len(clean_images_half) * 2} samples (half clean, half adversarial)")
                     
                 except Exception as e:
                     print(f"    Error generating {attack_type} {strength} attacks: {e}")
@@ -315,7 +317,7 @@ def load_kaggle_dataset(dataset_name, attack_type, strength, split='train', kagg
     
     return data
 
-def create_dataloader_from_kaggle_data(data, batch_size=32, shuffle=True):
+def create_dataloader_from_kaggle_data(data, batch_size=64, shuffle=True):
     """Create dataloader from Kaggle data"""
     clean_images = data['clean_images']
     clean_labels = data['clean_labels']
