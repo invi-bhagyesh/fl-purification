@@ -40,7 +40,7 @@ AVAILABLE_DATASETS = {
 ATTACK_CONFIGS = {
     'fgsm': {
         'weak': {'epsilon': 0.1},
-        'strong': {'epsilon': 0.5}
+        'strong': {'epsilon': 0.5} 
     },
     'pgd': {
         'weak': {'epsilon': 0.1, 'alpha': 0.01, 'iters': 20},
@@ -55,10 +55,9 @@ ATTACK_CONFIGS = {
 
 
 
-def get_medmnist_dataloader(dataset_name, batch_size, split='train', force_rgb=False, num_workers=2):
+def get_medmnist_dataloader(dataset_name, batch_size, split='train', num_workers=2):
     """Create dataloader for MedMNIST dataset.
        - Reads channels from medmnist.INFO
-       - If force_rgb=True, grayscale images will be repeated to 3 channels
     """
     if dataset_name not in INFO:
         raise ValueError(f"Dataset {dataset_name} not found in MedMNIST")
@@ -71,10 +70,9 @@ def get_medmnist_dataloader(dataset_name, batch_size, split='train', force_rgb=F
     # info['label'] is a mapping like {0: '...'}, so number of classes is its length
     num_classes = len(info.get('label', {}))
 
-    # Build transforms depending on channels. If force_rgb, convert single channel -> 3-channel
     tfms = [transforms.ToTensor()]
 
-    if channels == 1 and force_rgb:
+    if channels == 1:
         # convert 1-channel to 3-channel so models expecting RGB can accept it
         tfms.append(transforms.Lambda(lambda x: x.repeat(3, 1, 1)))
         # use ImageNet normalization after repeating
@@ -93,7 +91,7 @@ def get_medmnist_dataloader(dataset_name, batch_size, split='train', force_rgb=F
     dataset = DataClass(split=split, transform=transform, download=True)
     loader = DataLoader(dataset, batch_size=batch_size, shuffle=(split == 'train'), num_workers=num_workers)
     # attach metadata so callers can inspect channels/num_classes easily
-    loader.dataset_channels = 3 if (channels == 1 and force_rgb) else channels
+    loader.dataset_channels = 3 if (channels == 1) else channels
     loader.dataset_num_classes = num_classes
     return loader
 
@@ -186,11 +184,10 @@ def generate_attacks_for_strength(model, dataloader_or_batches, attack_type, str
             torch.cat(adv_images), torch.cat(adv_labels))
 
 
-def prepare_dataset_comprehensive(dataset_name, device='cuda', max_samples=None, force_rgb=False):
+def prepare_dataset_comprehensive(dataset_name, device='cuda', max_samples=None):
     """Prepare comprehensive dataset with all attack types and strengths, half adversarial half clean.
        - Reads num_classes and channels from MEDMNIST INFO
        - max_samples: if provided, truncates each split to max_samples
-       - force_rgb: if True will convert grayscale to 3-channel images (useful if model expects 3 channels)
     """
     print(f"Preparing comprehensive dataset for {dataset_name}...")
 
@@ -204,7 +201,7 @@ def prepare_dataset_comprehensive(dataset_name, device='cuda', max_samples=None,
     # create model according to what your ResNet accepts.
     # If ResNet18_MedMNIST supports an `in_channels` argument, pass it; else default to expectation in model
     try:
-        model = ResNet18_MedMNIST(num_classes=num_classes, in_channels=(3 if (channels == 1 and force_rgb) else channels)).to(device)
+        model = ResNet18_MedMNIST(num_classes=num_classes, in_channels=(3 if (channels == 1) else channels)).to(device)
     except TypeError:
         # fallback if ResNet18_MedMNIST only accepts num_classes
         model = ResNet18_MedMNIST(num_classes=num_classes).to(device)
@@ -216,7 +213,7 @@ def prepare_dataset_comprehensive(dataset_name, device='cuda', max_samples=None,
         print(f"\nProcessing {split} split...")
 
         try:
-            dataloader = get_medmnist_dataloader(dataset_name, batch_size, split, force_rgb=force_rgb)
+            dataloader = get_medmnist_dataloader(dataset_name, batch_size, split)
         except Exception as e:
             print(f"Error loading {split} split: {e}")
             continue
@@ -512,13 +509,12 @@ def main():
     parser.add_argument('--max_samples', type=int, default=None,
                        help='Maximum samples per split for preparation')
     parser.add_argument('--batch_size', type=int, default=32, help='Batch size for dataloader')
-    parser.add_argument('--force_rgb', action='store_true', help='If set, convert grayscale to 3-channel RGB by repeating channel')
 
     args = parser.parse_args()
 
     if args.mode == 'prepare':
         setup_kaggle_environment()
-        prepare_dataset_comprehensive(args.dataset, args.device, args.max_samples, force_rgb=args.force_rgb)
+        prepare_dataset_comprehensive(args.dataset, args.device, args.max_samples)
         print(f"Dataset {args.dataset} preparation completed!")
 
     elif args.mode == 'load':
