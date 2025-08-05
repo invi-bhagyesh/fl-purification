@@ -1,7 +1,6 @@
 """
-training functions based on existing training files with metrics added
+No longer used
 """
-
 import torch
 import torch.nn as nn
 import torch.optim as optim

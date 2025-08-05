@@ -37,13 +37,18 @@ from dataloader import (
 from utils.Attacks import fgsm_attack, pgd_attack, carlini_attack
 from utils.utils import batch_psnr_ssim
 
-# Import enhanced training functions
-from utils.new_training import (
-    train_autoencoder, 
-    train_denoising_autoencoder, 
-    train_hypernet, 
-    train_resnet18
-)
+# # Import enhanced training functions
+# from utils.new_training import (
+#     train_autoencoder, 
+#     train_denoising_autoencoder, 
+#     train_hypernet, 
+#     train_resnet18
+# )
+
+from utils.Resnet18_train import train_resnet18
+from utils.AE_train import train_autoencoder
+from utils.DAE_train import train_denoising_autoencoder
+from utils.Hypernet_train import train_hypernet
 
 
 def get_num_classes(dataset_name):
