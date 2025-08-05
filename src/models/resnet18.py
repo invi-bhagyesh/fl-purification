@@ -28,11 +28,16 @@ class BasicBlock(nn.Module):
         return out
 
 class ResNet18_MedMNIST(nn.Module):
-    def __init__(self, num_classes=8):
+    def __init__(self, num_classes=8, in_channels=3):
+        """
+        ResNet-18 variant for MedMNIST-sized inputs (28x28).
+        - num_classes: number of output classes
+        - in_channels: number of input channels (1 for grayscale MedMNIST, 3 for RGB)
+        """
         super(ResNet18_MedMNIST, self).__init__()
         self.in_channels = 64
-        # For MedMNIST: Input channels = 3 (RGB), 28x28 images, kernel size optimized
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
+        # Use provided in_channels instead of hardcoding 3
+        self.conv1 = nn.Conv2d(in_channels, 64, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(64)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.Identity()  # No pooling to preserve 28x28 spatial dim
@@ -43,7 +48,7 @@ class ResNet18_MedMNIST(nn.Module):
         self.layer4 = self._make_layer(BasicBlock, 512, 2, stride=2)
 
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        # Change output features from 1000 to 8 for MedMNIST
+        # Change output features from 1000 to num_classes
         self.fc = nn.Linear(512, num_classes)
 
     def _make_layer(self, block, out_channels, num_blocks, stride):
