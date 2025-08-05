@@ -43,9 +43,12 @@ def main():
     
     # Dataset and attack configuration
     parser.add_argument('--dataset_name', type=str, default='bloodmnist',
-                       choices=['bloodmnist', 'pathmnist', 'dermamnist', 'octmnist', 
-                               'pneumoniamnist', 'retinamnist', 'breastmnist', 'tissuemnist'],
+                       choices = [
+    'bloodmnist', 'pathmnist', 'dermamnist', 'octmnist',
+    'pneumoniamnist', 'retinamnist', 'breastmnist', 'tissuemnist',
+    'organamnist', 'organcmnist', 'organsmnist', 'chestmnist'],
                        help='MedMNIST dataset to use')
+    
     parser.add_argument('--attack_type', type=str, default='carlini',
                        choices=['none', 'fgsm', 'pgd', 'carlini'],
                        help='Type of adversarial attack to use')
