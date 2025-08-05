@@ -65,8 +65,8 @@ def main():
     
     # Data preparation
     parser.add_argument('--attack_types', nargs='+', default=['fgsm', 'pgd', 'carlini'], help='Types of attacks to generate')
-    parser.add_argument('--attack_strength', type=str, default='medium', 
-                       choices=['weak', 'medium', 'strong'], help='Attack strength for Kaggle data')
+    parser.add_argument('--attack_strength', type=str, default='weak', 
+                       choices=['weak', 'strong'], help='Attack strength for Kaggle data')
     parser.add_argument('--kaggle_mode', action='store_true', help='Enable Kaggle-compatible mode')
     parser.add_argument('--create_kaggle_dataset', action='store_true', help='Create Kaggle dataset zip file')
     

@@ -232,7 +232,7 @@ def test_individual_model(config, model_type):
         
         # Load test data from Kaggle dataset
         attack_type = config['attack_type']
-        strength = config.get('attack_strength', 'medium')
+        strength = config.get('attack_strength', 'strong')
         
         if attack_type == 'none':
             print("No attack specified, using clean data only")
@@ -431,7 +431,7 @@ def test_pipeline_configurations(config):
         
         # Load test data from Kaggle dataset
         attack_type = config['attack_type']
-        strength = config.get('attack_strength', 'medium')
+        strength = config.get('attack_strength', 'strong')
         
         if attack_type == 'none':
             print("No attack specified, using clean data only")

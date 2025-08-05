@@ -64,13 +64,13 @@ def get_num_classes(dataset_name):
         return 2
     elif dataset_name == 'tissuemnist':
         return 8
-    elif dataset_name == 'organamnist': # doing - dishita
+    elif dataset_name == 'organamnist': # failed - dishita
         return 11
-    elif dataset_name == 'organcmnist': # doing - invi p
+    elif dataset_name == 'organcmnist': # failed - invi p
         return 11
     elif dataset_name == 'organsmnist':
         return 11
-    elif dataset_name == 'chestmnist': # doing - invi
+    elif dataset_name == 'chestmnist': # failed - invi
         return 14
     else:
         raise ValueError(f"Unknown dataset name: {dataset_name}")
