@@ -81,36 +81,10 @@ def pgd_attack(model, images, labels, epsilon=0.3, alpha=0.01, iters=40):
     return adv_images
 
 
-# --- Replace existing carlini_attack with this robust version ---
 def carlini_attack(model, images, labels, c=1e-2, steps=1000, lr=0.01):
-    """
-    CW wrapper that accepts either:
-      - labels as class indices tensor shape (B,) dtype long/int
-      - OR labels as one-hot float tensor shape (B, num_classes)
-    It will internally decide which format was provided and call torchattacks.CW accordingly.
-    """
-    model_device = next(model.parameters()).device
-    images = images.to(model_device)
-
-    # infer num_classes from model outputs
-    with torch.no_grad():
-        out = model(images)
-    num_classes = out.shape[1]
-
-    # If labels look like one-hot (2D and width == num_classes), keep as float one-hot
-    if labels.dim() == 2 and labels.shape[1] == num_classes:
-        labels_onehot = labels.to(model_device).float()
-        # call CW with one-hot targets
-        attack = CW(model, c=c, steps=steps, lr=lr)
-        adv_images = attack(images, labels_onehot)
-        return adv_images
-
-    # Otherwise expect class-index labels shape (B,)
-    labels_idx = labels.view(-1).long().to(model_device)
-    # Convert to one-hot (float) for CW
-    labels_onehot = F.one_hot(labels_idx, num_classes=num_classes).float().to(model_device)
+    # Assumes model is in eval() mode, images and labels are on the correct device
     attack = CW(model, c=c, steps=steps, lr=lr)
-    adv_images = attack(images, labels_onehot)
+    adv_images = attack(images, labels)
     return adv_images
 
 
@@ -170,7 +144,7 @@ def setup_kaggle_environment():
             attack_dir = os.path.join(dataset_dir, attack_type)
             os.makedirs(attack_dir, exist_ok=True)
 
-            for strength in ['weak', 'strong']:
+            for strength in ['weak', 'medium', 'strong']:
                 strength_dir = os.path.join(attack_dir, strength)
                 os.makedirs(strength_dir, exist_ok=True)
 
@@ -180,14 +154,10 @@ def setup_kaggle_environment():
     print(f"Kaggle environment setup complete. Data directory: {KAGGLE_DATA_DIR}")
 
 
-# --- generate_attacks_for_strength: robust handling for different attacks ---
 def generate_attacks_for_strength(model, dataloader_or_batches, attack_type, strength, device='cuda'):
-    """Generate adversarial examples for a given attack and strength."""
-    # safe lookup for params
-    if attack_type not in ATTACK_CONFIGS or strength not in ATTACK_CONFIGS[attack_type]:
-        raise ValueError(f"No config for attack='{attack_type}' strength='{strength}'. "
-                         f"Available: {list(ATTACK_CONFIGS.get(attack_type, {}).keys())}")
-
+    """Generate adversarial examples for specific attack type and strength.
+       Accepts either a DataLoader or a list/iterable of (images, labels) batches.
+    """
     attack_params = ATTACK_CONFIGS[attack_type][strength]
 
     clean_images, clean_labels, adv_images, adv_labels = [], [], [], []
@@ -195,21 +165,18 @@ def generate_attacks_for_strength(model, dataloader_or_batches, attack_type, str
 
     print(f"Generating {attack_type} attacks with {strength} strength...")
 
+    # Allow either a DataLoader or a pre-collected list of batches
     iterator = dataloader_or_batches
     for batch in tqdm(iterator, desc=f"{attack_type}_{strength}"):
+        # batch expected either as (images, labels) for medmnist dataset OR the dataset's tuple form
         if isinstance(batch, (list, tuple)) and len(batch) >= 2:
             images, labels = batch[0], batch[1]
         else:
             raise ValueError("Each batch must be a tuple (images, labels, ...) or similar")
 
         images = images.to(device)
-        # ensure labels are 1-D long
-        labels = labels.view(-1).long().to(device)
-
-        # infer num_classes from model outputs (use a forward with no grad)
-        with torch.no_grad():
-            sample_out = model(images)
-        num_classes = sample_out.shape[1]
+        # medmnist returns labels as shape (B,1) sometimes; squeeze and convert to long
+        labels = labels.squeeze().long().to(device)
 
         if attack_type == 'fgsm':
             epsilon = attack_params['epsilon']
@@ -219,17 +186,14 @@ def generate_attacks_for_strength(model, dataloader_or_batches, attack_type, str
             alpha = attack_params['alpha']
             iters = attack_params['iters']
             adv_batch = pgd_attack(model, images, labels, epsilon, alpha, iters)
-        # Replace the carlini branch with this:
         elif attack_type == 'carlini':
             c = attack_params['c']
             steps = attack_params['steps']
             lr = attack_params['lr']
-            # pass class-index labels (B,) to the wrapper which will convert if needed
-            adv_batch = carlini_attack(model, images, labels, c=c, steps=steps, lr=lr)
+            adv_batch = carlini_attack(model, images, labels, c, steps, lr)
         else:
             raise ValueError(f"Unknown attack type: {attack_type}")
 
-        # store CPU tensors (keep labels as original class indices too)
         clean_images.append(images.cpu())
         clean_labels.append(labels.cpu())
         adv_images.append(adv_batch.cpu())
@@ -304,7 +268,7 @@ def prepare_dataset_comprehensive(dataset_name, device='cuda', max_samples=None,
             continue
 
         attack_types = ['fgsm', 'pgd', 'carlini']
-        strengths = ['weak', 'strong']
+        strengths = ['weak', 'medium', 'strong']
 
         for attack_type in attack_types:
             for strength in strengths:
@@ -375,7 +339,12 @@ def detect_kaggle_dataset(dataset_name):
         return available_datasets
 
     possible_names = [
-        f"fl-purification-{dataset_name}"
+        f"fl-purification-{dataset_name}",
+        f"fl-purification-{dataset_name}-complete",
+        f"fl-purification-{dataset_name}-dataset",
+        f"{dataset_name}-adversarial-attacks",
+        f"fl-purification-complete-{dataset_name}",
+        f"fl-purification-{dataset_name}-all-attacks"
     ]
 
     for name in possible_names:
@@ -493,7 +462,7 @@ def get_dataset_info(dataset_name, kaggle_dataset_name=None):
             if os.path.exists(attack_path):
                 info['available_attacks'].append(attack_type)
 
-                for strength in ['weak', 'strong']:
+                for strength in ['weak', 'medium', 'strong']:
                     strength_path = os.path.join(attack_path, strength)
                     if os.path.exists(strength_path):
                         if strength not in info['available_strengths']:
@@ -553,8 +522,8 @@ def main():
     parser.add_argument('--attack_type', type=str, default='fgsm',
                        choices=['fgsm', 'pgd', 'carlini'],
                        help='Attack type to load')
-    parser.add_argument('--strength', type=str, default='weak',
-                       choices=['weak', 'strong'],
+    parser.add_argument('--strength', type=str, default='medium',
+                       choices=['weak', 'medium', 'strong'],
                        help='Attack strength')
     parser.add_argument('--split', type=str, default='train',
                        choices=['train', 'val', 'test'],
