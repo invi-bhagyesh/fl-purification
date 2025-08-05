@@ -80,7 +80,7 @@ def pgd_attack(model, images, labels, epsilon=0.3, alpha=0.01, iters=40):
 
 def carlini_attack(model, images, labels, c=1e-2,steps=1000, lr=0.01):
     # Assumes model is in eval() mode, images and labels are on the correct device
-    attack = CW(model, c=c, kappa=kappa, steps=steps, lr=lr)
+    attack = CW(model, c=c, steps=steps, lr=lr)
     adv_images = attack(images, labels)
     return adv_images
 
