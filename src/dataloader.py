@@ -81,27 +81,35 @@ def pgd_attack(model, images, labels, epsilon=0.3, alpha=0.01, iters=40):
     return adv_images
 
 
-# --- Carlini attack wrapper: ensure labels are float one-hot with correct num_classes ---
+# --- Replace existing carlini_attack with this robust version ---
 def carlini_attack(model, images, labels, c=1e-2, steps=1000, lr=0.01):
     """
-    CW wrapper expecting labels as class indices. 
-    Convert them to float one-hot vectors of shape (B, num_classes).
+    CW wrapper that accepts either:
+      - labels as class indices tensor shape (B,) dtype long/int
+      - OR labels as one-hot float tensor shape (B, num_classes)
+    It will internally decide which format was provided and call torchattacks.CW accordingly.
     """
     model_device = next(model.parameters()).device
     images = images.to(model_device)
-    # get model output to infer num_classes
+
+    # infer num_classes from model outputs
     with torch.no_grad():
         out = model(images)
     num_classes = out.shape[1]
 
-    # ensure labels shape is (B,) long
-    labels = labels.view(-1).long().to(model_device)
+    # If labels look like one-hot (2D and width == num_classes), keep as float one-hot
+    if labels.dim() == 2 and labels.shape[1] == num_classes:
+        labels_onehot = labels.to(model_device).float()
+        # call CW with one-hot targets
+        attack = CW(model, c=c, steps=steps, lr=lr)
+        adv_images = attack(images, labels_onehot)
+        return adv_images
 
-    # convert to one-hot float: shape (B, num_classes) and dtype float
-    labels_onehot = F.one_hot(labels, num_classes=num_classes).float().to(model_device)
-
+    # Otherwise expect class-index labels shape (B,)
+    labels_idx = labels.view(-1).long().to(model_device)
+    # Convert to one-hot (float) for CW
+    labels_onehot = F.one_hot(labels_idx, num_classes=num_classes).float().to(model_device)
     attack = CW(model, c=c, steps=steps, lr=lr)
-    # pass one-hot float labels to CW
     adv_images = attack(images, labels_onehot)
     return adv_images
 
@@ -211,16 +219,13 @@ def generate_attacks_for_strength(model, dataloader_or_batches, attack_type, str
             alpha = attack_params['alpha']
             iters = attack_params['iters']
             adv_batch = pgd_attack(model, images, labels, epsilon, alpha, iters)
+        # Replace the carlini branch with this:
         elif attack_type == 'carlini':
-            # Carlini expects float one-hot label vectors in many implementations
             c = attack_params['c']
             steps = attack_params['steps']
             lr = attack_params['lr']
-
-            # convert to one-hot float BEFORE calling the specific attack function
-            labels_onehot = F.one_hot(labels, num_classes=num_classes).float().to(device)
-            # reuse the CW wrapper which expects one-hot float
-            adv_batch = carlini_attack(model, images, labels_onehot, c=c, steps=steps, lr=lr)
+            # pass class-index labels (B,) to the wrapper which will convert if needed
+            adv_batch = carlini_attack(model, images, labels, c=c, steps=steps, lr=lr)
         else:
             raise ValueError(f"Unknown attack type: {attack_type}")
 
