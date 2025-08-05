@@ -109,13 +109,13 @@ def main():
     
     # Initialize wandb if requested
     if args.wandb:
-        os.environ["WANDB_API_KEY"] = "54a391c6dadf06c03df1ca4448f05f49f90714ed"
-        wandb.login(key=os.getenv("WANDB_API_KEY", default="54a391c6dadf06c03df1ca4448f05f49f90714ed"))
+        os.environ["WANDB_API_KEY"] = "93e0092bafec12515dce3493023285e27311c27a"
+        wandb.login(key=os.getenv("WANDB_API_KEY", default="93e0092bafec12515dce3493023285e27311c27a"))
         
         if args.mode == 'train':
             wandb.init(
                 project="fl-purification",
-                entity="invi-bhagyesh",
+                entity="invi-bhagyesh-manipal",
                 config={
                     "Model Type": args.model_type,
                     "Epochs": args.epochs,
@@ -130,7 +130,7 @@ def main():
         else:  # test mode
             wandb.init(
                 project="fl-purification",
-                entity="invi-bhagyesh",
+                entity="invi-bhagyesh-manipal",
                 config={
                     "Test Type": args.test_type,
                     "Model Type": args.model_type,

@@ -29,11 +29,15 @@ AVAILABLE_DATASETS = {
     'bloodmnist': {'num_classes': 8, 'channels': 3},
     'pathmnist': {'num_classes': 9, 'channels': 3},
     'dermamnist': {'num_classes': 7, 'channels': 3},
-    'octmnist': {'num_classes': 4, 'channels': 1},
-    'pneumoniamnist': {'num_classes': 2, 'channels': 1},
+    'octmnist': {'num_classes': 4, 'channels': 3},
+    'pneumoniamnist': {'num_classes': 2, 'channels': 3},
     'retinamnist': {'num_classes': 5, 'channels': 3},
-    'breastmnist': {'num_classes': 2, 'channels': 1},
-    'tissuemnist': {'num_classes': 8, 'channels': 1}
+    'breastmnist': {'num_classes': 2, 'channels': 3}, # *
+    'tissuemnist': {'num_classes': 8, 'channels': 3}, # *
+    'organamnist': {'num_classes': 11, 'channels': 3},
+    'organcmnist': {'num_classes': 11, 'channels': 3},
+    'organsmnist': {'num_classes': 11, 'channels': 3},
+    'chestmnist': {'num_classes': 14, 'channels': 3}
 }
 
 # Attack configurations

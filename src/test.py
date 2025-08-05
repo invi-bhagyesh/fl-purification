@@ -116,6 +116,14 @@ class Pipeline:
                 num_classes = 2
             elif config['dataset_name'] == 'tissuemnist':
                 num_classes = 8
+            elif config['dataset_name'] == 'organamnist':
+                num_classes = 11
+            elif config['dataset_name'] == 'organcmnist':
+                num_classes = 11
+            elif config['dataset_name'] == 'organsmnist':
+                num_classes = 11
+            elif config['dataset_name'] == 'chestmnist':
+                num_classes = 14
             else:
                 num_classes = 8  # default
             
@@ -175,25 +183,33 @@ class Pipeline:
         return x
 
 def get_num_classes(dataset_name):
-    """Get number of classes for a given dataset"""
-    if dataset_name == 'bloodmnist':
+    """Get number of classes for a given MedMNIST dataset"""
+    if dataset_name == 'bloodmnist': # doing - invi
         return 8
-    elif dataset_name == 'pathmnist':
+    elif dataset_name == 'pathmnist': # doing - akshat
         return 9
-    elif dataset_name == 'dermamnist':
+    elif dataset_name == 'dermamnist': # doing - akshat
         return 7
-    elif dataset_name == 'octmnist':
+    elif dataset_name == 'octmnist': # doing - invi *
         return 4
-    elif dataset_name == 'pneumoniamnist':
+    elif dataset_name == 'pneumoniamnist': # doing - invi *
         return 2
-    elif dataset_name == 'retinamnist':
+    elif dataset_name == 'retinamnist': 
         return 5
     elif dataset_name == 'breastmnist':
         return 2
     elif dataset_name == 'tissuemnist':
         return 8
+    elif dataset_name == 'organamnist': # doing - dishita *
+        return 11
+    elif dataset_name == 'organcmnist':
+        return 11
+    elif dataset_name == 'organsmnist':
+        return 11
+    elif dataset_name == 'chestmnist': 
+        return 14
     else:
-        return 8  # default
+        raise ValueError(f"Unknown dataset name: {dataset_name}")
 
 def test_individual_model(config, model_type):
     """Test individual model"""
