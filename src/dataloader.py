@@ -175,8 +175,21 @@ def generate_attacks_for_strength(model, dataloader_or_batches, attack_type, str
             raise ValueError("Each batch must be a tuple (images, labels, ...) or similar")
 
         images = images.to(device)
-        # medmnist returns labels as shape (B,1) sometimes; squeeze and convert to long
-        labels = labels.squeeze().long().to(device)
+        
+        # Defensive label handling:
+        # - If labels are one-hot (B, num_classes) -> convert to indices via argmax
+        # - If labels are (B,1) or (B,) -> flatten to (B,)
+        # - Always convert to Long dtype for classification losses
+        if labels.dim() == 2:
+            # if column vector like (B,1) -> squeeze that dim
+            if labels.shape[1] == 1:
+                labels = labels.squeeze(1)
+            else:
+                # one-hot -> convert to class indices
+                labels = labels.argmax(dim=1)
+        
+        # Now make sure labels are 1-D long and on device without accidentally removing batch axis
+        labels = labels.view(-1).long().to(device)
 
         if attack_type == 'fgsm':
             epsilon = attack_params['epsilon']
