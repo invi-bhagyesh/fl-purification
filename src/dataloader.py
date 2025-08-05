@@ -16,6 +16,8 @@ import os
 import pickle
 from tqdm import tqdm
 import zipfile
+import torchattacks
+from torchattacks import CW
 
 # Kaggle-specific paths
 KAGGLE_INPUT_DIR = "/kaggle/input"
@@ -76,55 +78,10 @@ def pgd_attack(model, images, labels, epsilon=0.3, alpha=0.01, iters=40):
         adv_images = torch.clamp(images + delta, 0, 1).detach()
     return adv_images
 
-def carlini_attack_linf(model, images, labels, c=1e-2, steps=100, lr=0.01, epsilon=0.1):
-    """Carlini & Wagner L-infinity attack (simplified)"""
-    adv_images = images.clone()
-    for _ in range(steps):
-        adv_images.requires_grad = True
-        outputs = model(adv_images)
-        target_scores = outputs.gather(1, labels.unsqueeze(1))
-        max_other_scores = (outputs - 1000 * torch.eye(outputs.size(1)).to(outputs.device)[labels]).max(1)[0]
-        loss = torch.clamp(max_other_scores - target_scores + 50, min=0).sum()
-        loss.backward()
-        # L-inf uses the sign of the gradient and is clamped per pixel
-        adv_images = adv_images + lr * adv_images.grad.sign()
-        perturbation = torch.clamp(adv_images - images, min=-epsilon, max=epsilon)
-        adv_images = torch.clamp(images + perturbation, 0, 1).detach()
-    return adv_images
-
-def carlini_attack(model, images, labels, c=1e-2, steps=100, lr=0.01):
-    """Carlini & Wagner L2 attack (simplified)"""
-    adv_images = images.clone()
-    for _ in range(steps):
-        adv_images.requires_grad = True
-        outputs = model(adv_images)
-        target_scores = outputs.gather(1, labels.unsqueeze(1))
-        max_other_scores = (outputs - 1000 * torch.eye(outputs.size(1)).to(outputs.device)[labels]).max(1)[0]
-        loss = torch.clamp(max_other_scores - target_scores + 50, min=0).sum()
-        loss.backward()
-        adv_images = adv_images - lr * adv_images.grad.sign()
-        adv_images = torch.clamp(adv_images, 0, 1).detach()
-    return adv_images
-
-def carlini_attack_l0(model, images, labels, c=1e-2, steps=100, lr=0.01, topk=20):
-    """Carlini & Wagner L0 attack (very simplified and not optimal)"""
-    adv_images = images.clone()
-    for _ in range(steps):
-        adv_images.requires_grad = True
-        outputs = model(adv_images)
-        target_scores = outputs.gather(1, labels.unsqueeze(1))
-        max_other_scores = (outputs - 1000 * torch.eye(outputs.size(1)).to(outputs.device)[labels]).max(1)[0]
-        loss = torch.clamp(max_other_scores - target_scores + 50, min=0).sum()
-        loss.backward()
-        # Mask gradient: only update top-k pixels with largest absolute gradient
-        grad = adv_images.grad.detach()
-        flat_grad = grad.view(grad.size(0), -1).abs()
-        _, idx = flat_grad.topk(topk, dim=1)
-        mask = torch.zeros_like(flat_grad)
-        mask.scatter_(1, idx, 1)
-        mask = mask.view_as(adv_images)
-        adv_images = adv_images - lr * grad.sign() * mask
-        adv_images = torch.clamp(adv_images, 0, 1).detach()
+def carlini_attack(model, images, labels, c=1e-2,steps=1000, lr=0.01):
+    # Assumes model is in eval() mode, images and labels are on the correct device
+    attack = CW(model, c=c, kappa=kappa, steps=steps, lr=lr)
+    adv_images = attack(images, labels)
     return adv_images
 
 

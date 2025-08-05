@@ -8,3 +8,4 @@ scikit-learn>=1.0.0
 tqdm>=4.62.0
 numpy>=1.21.0
 matplotlib>=3.5.0 
+torchattacks>=3.5.1
