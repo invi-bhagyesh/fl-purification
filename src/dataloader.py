@@ -380,12 +380,7 @@ def detect_kaggle_dataset(dataset_name):
         return available_datasets
 
     possible_names = [
-        f"fl-purification-{dataset_name}",
-        f"fl-purification-{dataset_name}-complete",
-        f"fl-purification-{dataset_name}-dataset",
-        f"{dataset_name}-adversarial-attacks",
-        f"fl-purification-complete-{dataset_name}",
-        f"fl-purification-{dataset_name}-all-attacks"
+        f"{dataset_name}"
     ]
 
     for name in possible_names:
