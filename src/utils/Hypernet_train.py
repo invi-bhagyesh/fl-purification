@@ -27,7 +27,7 @@ def train_hypernet(model, train_loader, val_loader, device, num_epochs=20, confi
         num_batches = 0
         
         progress_bar = tqdm(train_loader, desc=f'Epoch {epoch+1}/{num_epochs}')
-        for images, pert_labels, true_labels in progress_bar:
+        for images, true_labels in progress_bar:
             images = images.to(device, dtype=torch.float)
             # If using actual noisy/attacked images, replace images as needed
             noise_std = 0.2  # You can experiment with this value
@@ -67,7 +67,7 @@ def train_hypernet(model, train_loader, val_loader, device, num_epochs=20, confi
         val_batches = 0
         
         with torch.no_grad():
-            for images, pert_labels, true_labels in val_loader:
+            for images, true_labels in val_loader:
                 images = images.to(device, dtype=torch.float)
                 outputs, _ = model(images)
                 loss = criterion(outputs, images)
