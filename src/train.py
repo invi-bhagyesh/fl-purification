@@ -329,6 +329,12 @@ def train_model(config):
         print("Training classifier...")
         train_classifier(config, train_loader, val_loader)
     
+    if 'all' in config['pipeline_type']:
+        print("Training all models in pipeline...")
+        train_detector(config, train_loader, val_loader)
+        train_reformer(config, train_loader, val_loader)
+        train_classifier(config, train_loader, val_loader)
+    
     print("Training completed!")
 
 def main(config):
