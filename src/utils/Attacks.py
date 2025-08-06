@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torchattacks import CW
 
 def fgsm_attack(model, images, labels, epsilon=0.3):
     """Fast Gradient Sign Method attack"""
