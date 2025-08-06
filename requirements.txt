@@ -9,3 +9,5 @@ tqdm>=4.62.0
 numpy>=1.21.0
 matplotlib>=3.5.0 
 torchattacks>=3.5.1
+segmentation_models_pytorch>=0.5.0
+

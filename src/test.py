@@ -67,9 +67,10 @@ class Detector(nn.Module):
         
         return output
 
-class Pipeline:
+class Pipeline(nn.Module):
     """Flexible pipeline that can combine detector, reformer, and classifier"""
     def __init__(self, config):
+        super().__init__()
         self.config = config
         self.device = torch.device(config['device'] if torch.cuda.is_available() else 'cpu')
         
