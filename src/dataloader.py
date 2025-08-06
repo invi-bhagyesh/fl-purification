@@ -33,7 +33,9 @@ AVAILABLE_DATASETS = {
     'organamnist': {},
     'organcmnist': {},
     'organsmnist': {},
-    'chestmnist': {}
+    'chestmnist': {},
+    'mnist': {},
+    'cifar10': {}
 }
 
 # Attack configurations - added 'medium' as an intermediate level
@@ -92,6 +94,48 @@ def get_medmnist_dataloader(dataset_name, batch_size, split='train', num_workers
     loader = DataLoader(dataset, batch_size=batch_size, shuffle=(split == 'train'), num_workers=num_workers)
     # attach metadata so callers can inspect channels/num_classes easily
     loader.dataset_channels = 3 if (channels == 1) else channels
+    loader.dataset_num_classes = num_classes
+    return loader
+
+
+# Torchvision dataloader for common datasets like MNIST, CIFAR10
+def get_torchvision_dataloader(dataset_name, batch_size, split='train', num_workers=2, root='./data'):
+    import torchvision.datasets as tvdatasets
+    if dataset_name.lower() == 'mnist':
+        channels = 1
+        num_classes = 10
+        tfms = [transforms.ToTensor()]
+        tfms.append(transforms.Lambda(lambda x: x.repeat(3, 1, 1)))
+        tfms.append(transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                         std=[0.229, 0.224, 0.225]))
+        transform = transforms.Compose(tfms)
+        is_train = (split == 'train')
+        dataset = tvdatasets.MNIST(root=root, train=is_train, transform=transform, download=True)
+    elif dataset_name.lower() == 'cifar10':
+        channels = 3
+        num_classes = 10
+        if split == 'train':
+            tfms = [
+                transforms.RandomCrop(32, padding=4),
+                transforms.RandomHorizontalFlip(),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                     std=[0.229, 0.224, 0.225])
+            ]
+            is_train = True
+        else:
+            tfms = [
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                     std=[0.229, 0.224, 0.225])
+            ]
+            is_train = False
+        transform = transforms.Compose(tfms)
+        dataset = tvdatasets.CIFAR10(root=root, train=is_train, transform=transform, download=True)
+    else:
+        raise ValueError(f"Unknown torchvision dataset: {dataset_name}")
+    loader = DataLoader(dataset, batch_size=batch_size, shuffle=(split == 'train'), num_workers=num_workers)
+    loader.dataset_channels = 3 if channels == 1 else channels
     loader.dataset_num_classes = num_classes
     return loader
 
@@ -213,7 +257,10 @@ def prepare_dataset_comprehensive(dataset_name, device='cuda', max_samples=None)
         print(f"\nProcessing {split} split...")
 
         try:
-            dataloader = get_medmnist_dataloader(dataset_name, batch_size, split)
+            if dataset_name.lower() in ['mnist', 'cifar10']:
+                dataloader = get_torchvision_dataloader(dataset_name, batch_size, split)
+            else:
+                dataloader = get_medmnist_dataloader(dataset_name, batch_size, split)
         except Exception as e:
             print(f"Error loading {split} split: {e}")
             continue
