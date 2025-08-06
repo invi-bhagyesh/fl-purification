@@ -123,18 +123,7 @@ def train_reformer(config, train_loader, val_loader):
             num_epochs=config['epochs'],
             config=config
         )
-    elif reformer_type == 'autoencoder':
-        reformer = SimpleAutoencoder()
-        # Train using enhanced autoencoder training
-        trained_model = train_autoencoder(
-            model=reformer,
-            train_loader=train_loader,
-            val_loader=val_loader,
-            device=device,
-            num_epochs=config['epochs'],
-            learning_rate=config['lr'],
-            config=config
-        )
+        
     elif reformer_type == 'denoising_autoencoder':
         reformer = DenoisingAutoEncoder(
             image_shape=(3, 28, 28), 
