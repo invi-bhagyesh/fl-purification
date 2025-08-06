@@ -266,19 +266,30 @@ def train_model(config):
         if kaggle_mode:
             print("Using Kaggle clean-only dataloader...")
             # Check available datasets first
-            list_available_kaggle_datasets()
+            available_datasets = list_available_kaggle_datasets()
             
             # Get dataset info
             dataset_info = get_dataset_info(config['dataset_name'])
             if not dataset_info:
                 print(f"No Kaggle dataset found for {config['dataset_name']}")
-                return None
-            
-            print(f"Available attacks: {dataset_info['available_attacks']}")
-            print(f"Available strengths: {dataset_info['available_strengths']}")
-            
-            # Create clean-only dataloaders for Kaggle
-            train_loader, val_loader = create_clean_only_dataloaders_for_kaggle(config)
+                print("\nOptions to fix this:")
+                print("1. Prepare the dataset first:")
+                print(f"   python src/dataloader.py --mode prepare --dataset {config['dataset_name']}")
+                print("2. Switch to local mode (remove --kaggle_mode flag):")
+                print(f"   python src/run.py --mode train --train_clean_only --model_type classifier --dataset_name {config['dataset_name']}")
+                print("3. Use a different dataset that might be available")
+                if available_datasets:
+                    print(f"   Available datasets: {available_datasets}")
+                
+                # Fallback to local mode
+                print("\nFalling back to local MedMNIST mode...")
+                train_loader, val_loader = create_clean_only_dataloaders_local(config)
+            else:
+                print(f"Available attacks: {dataset_info['available_attacks']}")
+                print(f"Available strengths: {dataset_info['available_strengths']}")
+                
+                # Create clean-only dataloaders for Kaggle
+                train_loader, val_loader = create_clean_only_dataloaders_for_kaggle(config)
             
         else:
             print("Using local clean-only dataloader...")
