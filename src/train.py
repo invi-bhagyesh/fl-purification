@@ -83,65 +83,32 @@ def get_num_classes(dataset_name):
 
 
 def create_clean_only_dataloaders_for_kaggle(config):
-    """
-    Create clean-only dataloaders that work with both detector and classifier/reformer
-    Uses the Kaggle dataset but extracts only clean images in the right format
-    """
+    """Create dataloaders with clean data only from Kaggle dataset."""
     print("Creating clean-only dataloaders from Kaggle dataset...")
-    
     try:
-        # Load any attack data (we'll just use the clean portion)
-        attack_strength = config.get('attack_strength', 'weak')
-        available_attacks = ['fgsm', 'pgd', 'carlini']
+        # For clean-only mode, we can load clean data using one of the attack configurations.
+        # Here we arbitrarily use 'fgsm' with 'weak' strength for both splits.
+        from src.dataloader import load_kaggle_dataset, create_clean_only_dataloader_from_kaggle_data
+
+        train_data = load_kaggle_dataset(
+            dataset_name=config['dataset_name'],
+            attack_type='fgsm',
+            strength='weak',
+            split='train'
+        )
+        val_data = load_kaggle_dataset(
+            dataset_name=config['dataset_name'],
+            attack_type='fgsm',
+            strength='weak',
+            split='val'
+        )
         
-        # Try to find any available attack data to extract clean images
-        train_data = None
-        val_data = None
+        train_loader = create_clean_only_dataloader_from_kaggle_data(train_data, batch_size=config['batch_size'])
+        val_loader = create_clean_only_dataloader_from_kaggle_data(val_data, batch_size=config['batch_size'])
         
-        for attack_type in available_attacks:
-            try:
-                train_data = load_kaggle_dataset(
-                    config['dataset_name'], 
-                    attack_type, 
-                    attack_strength, 
-                    split='train'
-                )
-                val_data = load_kaggle_dataset(
-                    config['dataset_name'], 
-                    attack_type, 
-                    attack_strength, 
-                    split='val'
-                )
-                print(f"Found Kaggle data using {attack_type} attack (will use clean portion only)")
-                break
-            except Exception as e:
-                print(f"Could not load {attack_type} data: {e}")
-                continue
-        
-        if train_data is None:
-            raise Exception("Could not load any Kaggle attack data to extract clean images")
-        
-        # Extract only clean images from the dataset
-        train_clean_images = train_data['clean_images']
-        train_clean_labels = train_data['clean_labels']
-        val_clean_images = val_data['clean_images']
-        val_clean_labels = val_data['clean_labels']
-        
-        # Create perturbation labels (all 0 since all are clean)
-        train_pert_labels = torch.zeros(len(train_clean_images))
-        val_pert_labels = torch.zeros(len(val_clean_images))
-        
-        # Create datasets with the expected format: (images, pert_labels, true_labels)
-        train_dataset = TensorDataset(train_clean_images, train_pert_labels, train_clean_labels)
-        val_dataset = TensorDataset(val_clean_images, val_pert_labels, val_clean_labels)
-        
-        # Create dataloaders
-        train_loader = DataLoader(train_dataset, batch_size=config['batch_size'], shuffle=True)
-        val_loader = DataLoader(val_dataset, batch_size=config['batch_size'], shuffle=False)
-        
-        print(f"Clean-only dataloaders created:")
-        print(f"  Train samples: {len(train_clean_images)}")
-        print(f"  Val samples: {len(val_clean_images)}")
+        print("Clean-only dataloaders created:")
+        print(f"  Train samples: {len(train_data['clean_images'])}")
+        print(f"  Val samples: {len(val_data['clean_images'])}")
         print(f"  Train batches: {len(train_loader)}")
         print(f"  Val batches: {len(val_loader)}")
         
