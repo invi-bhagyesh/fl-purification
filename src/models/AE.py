@@ -1,39 +1,51 @@
- # Detector
+# Detector
 import torchvision.transforms.functional as F
 import torch.nn as nn
+
 class SimpleAutoencoder(nn.Module):
-    def __init__(self):
+    def __init__(self, image_shape=(3, 28, 28)):
+        """
+        Initializes the autoencoder.
+        
+        Args:
+            image_shape (tuple): Input image shape in the format (channels, height, width).
+        """
         super().__init__()
+        self.image_shape = image_shape
+        # Final output should match the original image spatial dimensions.
+        self.out_size = image_shape[1:]
+        
         self.encoder = nn.Sequential(
-            nn.Conv2d(3, 32, 3, stride=2, padding=1),
+            nn.Conv2d(image_shape[0], 32, 3, stride=2, padding=1),
             nn.BatchNorm2d(32),
             nn.LeakyReLU(0.2, inplace=True),
             nn.Conv2d(32, 64, 3, stride=2, padding=1),
             nn.BatchNorm2d(64),
             nn.LeakyReLU(0.2, inplace=True),
-            nn.Conv2d(64,128, 3, stride=2, padding=1),
+            nn.Conv2d(64, 128, 3, stride=2, padding=1),
             nn.BatchNorm2d(128),
             nn.LeakyReLU(0.2, inplace=True),
             nn.Flatten(),
-            nn.Linear(128*4*4, 512),
+            nn.Linear(128 * 4 * 4, 512),
             nn.LeakyReLU(0.2, inplace=True),
         )
         self.decoder = nn.Sequential(
-            nn.Linear(512, 128*4*4),
+            nn.Linear(512, 128 * 4 * 4),
             nn.LeakyReLU(0.2, inplace=True),
             nn.Unflatten(1, (128, 4, 4)),
-            nn.ConvTranspose2d(128, 64, 4, stride=2, padding=1, output_padding=0), # 4x4 → 8x8
+            nn.ConvTranspose2d(128, 64, 4, stride=2, padding=1),  # 4x4 → 8x8
             nn.BatchNorm2d(64),
             nn.LeakyReLU(0.2, inplace=True),
-            nn.ConvTranspose2d(64, 32, 4, stride=2, padding=1, output_padding=0), # 8x8 → 14x14
+            nn.ConvTranspose2d(64, 32, 4, stride=2, padding=1),   # 8x8 → 16x16 (or slightly larger)
             nn.BatchNorm2d(32),
             nn.LeakyReLU(0.2, inplace=True),
-            nn.ConvTranspose2d(32, 3, 4, stride=2, padding=1, output_padding=0), # 14x14 → 28x28
+            nn.ConvTranspose2d(32, image_shape[0], 4, stride=2, padding=1),  # Upsample to target resolution
             nn.Sigmoid()
         )
     
     def forward(self, x):
         z = self.encoder(x)
         out = self.decoder(z)
-        out = F.center_crop(out, [28, 28])
+        # Crop output to match the target image dimensions
+        out = F.center_crop(out, self.out_size)
         return out
