@@ -58,6 +58,14 @@ ATTACK_CONFIGS = {
 }
 
 
+def get_clean_only_dataloader(dataset_name, batch_size, split='train', num_workers=2):
+    """Create dataloader with clean data only (no adversarial examples).
+       Used for training on clean data only.
+    """
+    if dataset_name.lower() in ['mnist', 'cifar10']:
+        return get_torchvision_dataloader(dataset_name, batch_size, split, num_workers)
+    else:
+        return get_medmnist_dataloader(dataset_name, batch_size, split, num_workers)
 
 
 def get_medmnist_dataloader(dataset_name, batch_size, split='train', num_workers=2):
@@ -449,6 +457,18 @@ def create_dataloader_from_kaggle_data(data, batch_size=64, shuffle=True):
     ])
 
     dataset = TensorDataset(all_images, pert_labels, all_labels)
+    return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
+
+
+def create_clean_only_dataloader_from_kaggle_data(data, batch_size=64, shuffle=True):
+    """Create dataloader with ONLY clean images from Kaggle data - for training on clean data only"""
+    clean_images = data['clean_images']
+    clean_labels = data['clean_labels']
+    
+    # Only use clean images, no adversarial
+    pert_labels = torch.zeros(len(clean_images))  # All are clean (label 0)
+    
+    dataset = TensorDataset(clean_images, pert_labels, clean_labels)
     return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
 
 

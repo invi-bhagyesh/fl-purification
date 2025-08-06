@@ -56,6 +56,10 @@ def main():
     parser.add_argument('--adv_ratio', type=float, default=0.3,
                        help='Ratio of adversarial examples in training data')
     
+    # NEW: Clean training option
+    parser.add_argument('--train_clean_only', action='store_true',
+                       help='Train on clean data only (no adversarial examples in training)')
+    
     # Reformer specific
     parser.add_argument('--reformer_type', type=str, default='hypernet',
                        choices=['hypernet', 'autoencoder', 'denoising_autoencoder'],
@@ -108,7 +112,8 @@ def main():
         'data_dir': args.data_dir,
         'reform_all': args.reform_all,
         'kaggle_mode': args.kaggle_mode,
-        'attack_strength': args.attack_strength
+        'attack_strength': args.attack_strength,
+        'train_clean_only': args.train_clean_only  # NEW: Add clean training flag
     }
     
     # Initialize wandb if requested
@@ -128,7 +133,8 @@ def main():
                     "Dataset": args.dataset_name,
                     "Attack Type": args.attack_type,
                     "Adversarial Ratio": args.adv_ratio,
-                    "Reformer Type": args.reformer_type
+                    "Reformer Type": args.reformer_type,
+                    "Train Clean Only": args.train_clean_only  # NEW: Log clean training flag
                 }
             )
         else:  # test mode
@@ -168,4 +174,4 @@ def main():
         test_main(config, args.test_type, args.model_type)
 
 if __name__ == '__main__':
-    main() 
+    main()

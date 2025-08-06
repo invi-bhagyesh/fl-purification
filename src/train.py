@@ -31,20 +31,14 @@ from models.AE import SimpleAutoencoder
 from dataloader import (
     load_kaggle_dataset, 
     create_dataloader_from_kaggle_data,
+    create_clean_only_dataloader_from_kaggle_data,  # NEW: Import clean-only dataloader
+    get_clean_only_dataloader,  # NEW: Import direct clean dataloader
     load_multiple_attacks,
     get_dataset_info,
     list_available_kaggle_datasets
 )
 from utils.Attacks import fgsm_attack, pgd_attack, carlini_attack
 from utils.utils import batch_psnr_ssim
-
-# # Import enhanced training functions
-# from utils.new_training import (
-#     train_autoencoder, 
-#     train_denoising_autoencoder, 
-#     train_hypernet, 
-#     train_resnet18
-# )
 
 from utils.Resnet18_train import train_resnet18
 from utils.AE_train import train_autoencoder
@@ -188,9 +182,11 @@ def train_model(config):
     print(f"Starting training with pipeline: {config['pipeline_type']}")
     print(f"Dataset: {config['dataset_name']}")
     print(f"Attack type: {config['attack_type']}")
+    print(f"Train clean only: {config.get('train_clean_only', False)}")  # NEW: Log clean training mode
     
     # Check if we're in Kaggle mode
     kaggle_mode = config.get('kaggle_mode', False)
+    train_clean_only = config.get('train_clean_only', False)  # NEW: Get clean training flag
     
     if kaggle_mode:
         print("Using Kaggle dataloader...")
@@ -207,51 +203,74 @@ def train_model(config):
         print(f"Available attacks: {dataset_info['available_attacks']}")
         print(f"Available strengths: {dataset_info['available_strengths']}")
         
-        # Load data from Kaggle dataset
-        attack_type = config['attack_type']
-        strength = config.get('attack_strength', 'medium')
+        if train_clean_only:
+            # NEW: Train on clean data only - use direct clean dataloader
+            print("Training on CLEAN DATA ONLY...")
+            try:
+                train_loader = get_clean_only_dataloader(
+                    config['dataset_name'], 
+                    config['batch_size'], 
+                    split='train'
+                )
+                val_loader = get_clean_only_dataloader(
+                    config['dataset_name'], 
+                    config['batch_size'], 
+                    split='val'
+                )
+                
+                print(f"Successfully loaded clean-only data:")
+                print(f"  Train batches: {len(train_loader)}")
+                print(f"  Val batches: {len(val_loader)}")
+                
+            except Exception as e:
+                print(f"Error loading clean data: {e}")
+                return None
         
-        if attack_type == 'none':
-            print("No attack specified, using clean data only")
-            # For clean data, we'll use a dummy attack type and filter later
-            attack_type = 'fgsm'  # dummy, will be filtered out
-        
-        try:
-            # Load training data
-            train_data = load_kaggle_dataset(
-                config['dataset_name'], 
-                attack_type, 
-                strength, 
-                split='train'
-            )
+        else:
+            # Original behavior - load adversarial + clean data
+            attack_type = config['attack_type']
+            strength = config.get('attack_strength', 'weak')
             
-            # Load validation data
-            val_data = load_kaggle_dataset(
-                config['dataset_name'], 
-                attack_type, 
-                strength, 
-                split='val'
-            )
+            if attack_type == 'none':
+                print("No attack specified, using clean data only")
+                attack_type = 'fgsm'  # dummy, will be filtered out
             
-            # Create dataloaders
-            train_loader = create_dataloader_from_kaggle_data(
-                train_data, 
-                batch_size=config['batch_size'], 
-                shuffle=True
-            )
-            val_loader = create_dataloader_from_kaggle_data(
-                val_data, 
-                batch_size=config['batch_size'], 
-                shuffle=False
-            )
-            
-            print(f"Successfully loaded Kaggle data:")
-            print(f"  Train batches: {len(train_loader)}")
-            print(f"  Val batches: {len(val_loader)}")
-            
-        except Exception as e:
-            print(f"Error loading Kaggle data: {e}")
-            return None
+            try:
+                # Load training data
+                train_data = load_kaggle_dataset(
+                    config['dataset_name'], 
+                    attack_type, 
+                    strength, 
+                    split='train'
+                )
+                
+                # Load validation data
+                val_data = load_kaggle_dataset(
+                    config['dataset_name'], 
+                    attack_type, 
+                    strength, 
+                    split='val'
+                )
+                
+                # Create dataloaders
+                train_loader = create_dataloader_from_kaggle_data(
+                    train_data, 
+                    batch_size=config['batch_size'], 
+                    shuffle=True
+                )
+                val_loader = create_dataloader_from_kaggle_data(
+                    val_data, 
+                    batch_size=config['batch_size'], 
+                    shuffle=False
+                )
+                
+                print(f"Successfully loaded Kaggle data:")
+                print(f"  Train batches: {len(train_loader)}")
+                print(f"  Val batches: {len(val_loader)}")
+                
+            except Exception as e:
+                print(f"Error loading Kaggle data: {e}")
+                return None
     
     else:
         # Legacy mode - use local data preparation
@@ -263,22 +282,29 @@ def train_model(config):
             clean_train = load_prepared_data(config['dataset_name'], split='train', data_dir=data_dir)
             clean_val = load_prepared_data(config['dataset_name'], split='val', data_dir=data_dir)
             
-            # Load attack data if needed
-            if config['attack_type'] != 'none':
-                adv_train = load_prepared_data(config['dataset_name'], config['attack_type'], split='train', data_dir=data_dir)
-                adv_val = load_prepared_data(config['dataset_name'], config['attack_type'], split='val', data_dir=data_dir)
-                
-                # Create combined datasets
-                train_images, train_pert_labels, train_true_labels = create_combined_dataset(
-                    clean_train, adv_train, config.get('adv_ratio', 0.5)
-                )
-                val_images, val_pert_labels, val_true_labels = create_combined_dataset(
-                    clean_val, adv_val, config.get('adv_ratio', 0.5)
-                )
-            else:
-                # Use clean data only
+            if train_clean_only:
+                # NEW: Use only clean data for training
+                print("Training on CLEAN DATA ONLY...")
                 train_images, train_pert_labels, train_true_labels = clean_train['images'], torch.zeros(len(clean_train['images'])), clean_train['labels']
                 val_images, val_pert_labels, val_true_labels = clean_val['images'], torch.zeros(len(clean_val['images'])), clean_val['labels']
+            else:
+                # Original behavior
+                # Load attack data if needed
+                if config['attack_type'] != 'none':
+                    adv_train = load_prepared_data(config['dataset_name'], config['attack_type'], split='train', data_dir=data_dir)
+                    adv_val = load_prepared_data(config['dataset_name'], config['attack_type'], split='val', data_dir=data_dir)
+                    
+                    # Create combined datasets
+                    train_images, train_pert_labels, train_true_labels = create_combined_dataset(
+                        clean_train, adv_train, config.get('adv_ratio', 0.5)
+                    )
+                    val_images, val_pert_labels, val_true_labels = create_combined_dataset(
+                        clean_val, adv_val, config.get('adv_ratio', 0.5)
+                    )
+                else:
+                    # Use clean data only
+                    train_images, train_pert_labels, train_true_labels = clean_train['images'], torch.zeros(len(clean_train['images'])), clean_train['labels']
+                    val_images, val_pert_labels, val_true_labels = clean_val['images'], torch.zeros(len(clean_val['images'])), clean_val['labels']
             
             # Create dataloaders
             train_dataset = TensorDataset(train_images, train_pert_labels, train_true_labels)
@@ -313,6 +339,7 @@ def main(config):
     print(f"Epochs: {config['epochs']}")
     print(f"Batch size: {config['batch_size']}")
     print(f"Learning rate: {config['lr']}")
+    print(f"Train clean only: {config.get('train_clean_only', False)}")  # NEW: Log clean training flag
     
     # Train model
-    train_model(config) 
+    train_model(config)
