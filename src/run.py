@@ -3,6 +3,7 @@
 """
 Main entry point for FL-Purification
 Handles all argument parsing and calls appropriate functions
+Modified to default to clean training (no adversarial data upload required)
 """
 
 import argparse
@@ -52,13 +53,13 @@ def main():
     
     parser.add_argument('--attack_type', type=str, default='carlini',
                        choices=['none', 'fgsm', 'pgd', 'carlini'],
-                       help='Type of adversarial attack to use')
+                       help='Type of adversarial attack to use (mainly for testing)')
     parser.add_argument('--adv_ratio', type=float, default=0.3,
-                       help='Ratio of adversarial examples in training data')
+                       help='Ratio of adversarial examples in testing data')
     
-    # NEW: Clean training option
-    parser.add_argument('--train_clean_only', action='store_true',
-                       help='Train on clean data only (no adversarial examples in training)')
+    # Training mode: Now defaults to clean-only training 
+    parser.add_argument('--train_with_adversarial', action='store_true',
+                       help='Train with adversarial examples (requires pre-prepared data). Default is clean-only training.')
     
     # Reformer specific
     parser.add_argument('--reformer_type', type=str, default='hypernet',
@@ -100,6 +101,22 @@ def main():
             print("Data preparation completed!")
             return
     
+    # Determine training mode (clean-only is now default)
+    train_clean_only = not args.train_with_adversarial
+    
+    if args.mode == 'train':
+        if train_clean_only:
+            print("=== TRAINING MODE: CLEAN DATA ONLY ===")
+            print("✓ Fast training with clean data generated on-the-fly")
+            print("✓ No need to upload large adversarial datasets")
+            print("✓ Models will learn from clean examples")
+            if args.train_with_adversarial:
+                print("  To train with adversarial data, use --train_with_adversarial flag")
+        else:
+            print("=== TRAINING MODE: MIXED DATA (CLEAN + ADVERSARIAL) ===")
+            print("⚠ Requires pre-prepared adversarial datasets")
+            print("⚠ Slower training due to larger dataset")
+    
     # Common configuration
     config = {
         'batch_size': args.batch_size,
@@ -113,7 +130,7 @@ def main():
         'reform_all': args.reform_all,
         'kaggle_mode': args.kaggle_mode,
         'attack_strength': args.attack_strength,
-        'train_clean_only': args.train_clean_only  # NEW: Add clean training flag
+        'train_clean_only': train_clean_only  # This is now the default
     }
     
     # Initialize wandb if requested
@@ -134,7 +151,8 @@ def main():
                     "Attack Type": args.attack_type,
                     "Adversarial Ratio": args.adv_ratio,
                     "Reformer Type": args.reformer_type,
-                    "Train Clean Only": args.train_clean_only  # NEW: Log clean training flag
+                    "Train Clean Only": train_clean_only,
+                    "Training Mode": "Clean-Only" if train_clean_only else "Mixed"
                 }
             )
         else:  # test mode
@@ -170,7 +188,7 @@ def main():
             'model_type': args.model_type
         })
         
-        # Run testing
+        # Run testing (keeps original logic with adv+clean data)
         test_main(config, args.test_type, args.model_type)
 
 if __name__ == '__main__':

@@ -25,6 +25,12 @@ python src/run.py --mode prepare_data --kaggle_mode --dataset_name bloodmnist --
 
 # Train all models (pipeline)
 !python src/run.py --mode train --train_clean_only --kaggle_mode --model_type all --dataset_name bloodmnist --attack_type fgsm --attack_strength strong
+
+# Train classifier on clean bloodmnist data
+!python src/run.py --mode train --model_type classifier --dataset_name bloodmnist
+
+# Train full pipeline on clean dermamnist data  
+!python src/run.py --mode train --model_type all --dataset_name dermamnist --epochs 30
 ```
 
 ### 3. Testing
