@@ -15,16 +15,16 @@ python src/run.py --mode prepare_data --kaggle_mode --dataset_name bloodmnist --
 
 ```bash
 # Train detector (autoencoder)
-python src/run.py --mode train --kaggle_mode --model_type detector --dataset_name bloodmnist --attack_type fgsm --attack_strength medium
+!python src/run.py --mode train --train_clean_only --kaggle_mode --model_type detector --dataset_name bloodmnist --attack_type fgsm --attack_strength strong
 
 # Train reformer
-python src/run.py --mode train --kaggle_mode --model_type reformer --dataset_name bloodmnist --attack_type fgsm --attack_strength medium
+!python src/run.py --mode train --train_clean_only --kaggle_mode --model_type reformer --dataset_name bloodmnist --attack_type fgsm --attack_strength strong
 
 # Train classifier
-python src/run.py --mode train --kaggle_mode --model_type classifier --dataset_name bloodmnist --attack_type fgsm --attack_strength medium
+!python src/run.py --mode train --train_clean_only --kaggle_mode --model_type classifier --dataset_name bloodmnist --attack_type fgsm --attack_strength strong
 
 # Train all models (pipeline)
-python src/run.py --mode train --kaggle_mode --model_type all --dataset_name bloodmnist --attack_type fgsm --attack_strength medium
+!python src/run.py --mode train --train_clean_only --kaggle_mode --model_type all --dataset_name bloodmnist --attack_type fgsm --attack_strength strong
 ```
 
 ### 3. Testing
