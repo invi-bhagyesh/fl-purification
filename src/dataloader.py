@@ -40,7 +40,6 @@ AVAILABLE_DATASETS = {
     'cifar10': {}
 }
 
-# Attack configurations - added 'medium' as an intermediate level
 ATTACK_CONFIGS = {
     'fgsm': {
         'weak': {'epsilon': 0.1},
@@ -155,7 +154,7 @@ def setup_kaggle_environment():
             attack_dir = os.path.join(dataset_dir, attack_type)
             os.makedirs(attack_dir, exist_ok=True)
 
-            for strength in ['weak', 'medium', 'strong']:
+            for strength in ['weak', 'strong']:
                 strength_dir = os.path.join(attack_dir, strength)
                 os.makedirs(strength_dir, exist_ok=True)
 
@@ -304,7 +303,7 @@ def prepare_dataset_comprehensive(dataset_name, device='cuda', max_samples=None)
             continue
 
         attack_types = ['fgsm', 'pgd', 'carlini']
-        strengths = ['weak', 'medium', 'strong']
+        strengths = ['weak', 'strong']
 
         for attack_type in attack_types:
             for strength in strengths:
@@ -504,7 +503,7 @@ def get_dataset_info(dataset_name, kaggle_dataset_name=None):
             if os.path.exists(attack_path):
                 info['available_attacks'].append(attack_type)
 
-                for strength in ['weak', 'medium', 'strong']:
+                for strength in ['weak', 'strong']:
                     strength_path = os.path.join(attack_path, strength)
                     if os.path.exists(strength_path):
                         if strength not in info['available_strengths']:
@@ -564,8 +563,8 @@ def main():
     parser.add_argument('--attack_type', type=str, default='fgsm',
                        choices=['fgsm', 'pgd', 'carlini'],
                        help='Attack type to load')
-    parser.add_argument('--strength', type=str, default='medium',
-                       choices=['weak', 'medium', 'strong'],
+    parser.add_argument('--strength', type=str, default='strong',
+                       choices=['weak', 'strong'],
                        help='Attack strength')
     parser.add_argument('--split', type=str, default='train',
                        choices=['train', 'val', 'test'],
