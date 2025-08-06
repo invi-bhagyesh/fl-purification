@@ -19,6 +19,26 @@ from skimage.metrics import peak_signal_noise_ratio as compute_psnr
 from skimage.metrics import structural_similarity as compute_ssim
 import lpips
 
+
+class CleanDataWrapper:
+    """Wrapper to convert 2-tuple dataloaders to 3-tuple format for training functions"""
+    def __init__(self, base_loader):
+        self.base_loader = base_loader
+        
+    def __len__(self):
+        return len(self.base_loader)
+        
+    def __iter__(self):
+        for batch in self.base_loader:
+            if len(batch) == 2:
+                images, labels = batch
+                # Add perturbation labels (0 = clean, 1 = adversarial)
+                pert_labels = torch.zeros(len(images))  # All clean data
+                yield images, pert_labels, labels
+            else:
+                # Already in correct format
+                yield batch
+
 # Import models
 import sys
 sys.path.append(
@@ -94,12 +114,16 @@ def create_clean_dataloaders_onthefly(config):
     try:
         # Use the existing dataloader functions to get clean data directly
         if dataset_name.lower() in ['mnist', 'cifar10']:
-            train_loader = get_torchvision_dataloader(dataset_name, batch_size, 'train')
-            val_loader = get_torchvision_dataloader(dataset_name, batch_size, 'val')
+            base_train_loader = get_torchvision_dataloader(dataset_name, batch_size, 'train')
+            base_val_loader = get_torchvision_dataloader(dataset_name, batch_size, 'val')
         else:
             # MedMNIST datasets
-            train_loader = get_medmnist_dataloader(dataset_name, batch_size, 'train')
-            val_loader = get_medmnist_dataloader(dataset_name, batch_size, 'val')
+            base_train_loader = get_medmnist_dataloader(dataset_name, batch_size, 'train')
+            base_val_loader = get_medmnist_dataloader(dataset_name, batch_size, 'val')
+        
+        # Convert to the expected format with perturbation labels
+        train_loader = CleanDataWrapper(base_train_loader)
+        val_loader = CleanDataWrapper(base_val_loader)
         
         print("Clean dataloaders created on-the-fly:")
         print(f"  Train batches: {len(train_loader)}")
@@ -131,7 +155,7 @@ def create_clean_only_dataloaders_for_kaggle(config):
             split='val'
         )
         
-        # Use the clean-only dataloader function
+        # Use the clean-only dataloader function (these already return 3-tuple format)
         train_loader = create_clean_only_dataloader_from_kaggle_data(train_data, batch_size=config['batch_size'])
         val_loader = create_clean_only_dataloader_from_kaggle_data(val_data, batch_size=config['batch_size'])
         
