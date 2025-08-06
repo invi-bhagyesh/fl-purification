@@ -1,3 +1,4 @@
+# train.py
 """
 Comprehensive training script for FL-Purification
 Supports individual model training, pipeline training, and data preparation

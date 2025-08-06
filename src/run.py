@@ -1,4 +1,5 @@
-#!/usr/bin/env python3
+# run.py
+
 """
 Main entry point for FL-Purification
 Handles all argument parsing and calls appropriate functions

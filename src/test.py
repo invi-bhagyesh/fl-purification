@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+# test.py
 """
 Comprehensive testing script for FL-Purification
 Tests individual models and pipeline configurations
