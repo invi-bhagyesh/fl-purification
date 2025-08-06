@@ -232,24 +232,34 @@ def generate_attacks_for_strength(model, dataloader_or_batches, attack_type, str
 
 def prepare_dataset_comprehensive(dataset_name, device='cuda', max_samples=None):
     """Prepare comprehensive dataset with all attack types and strengths, half adversarial half clean.
-       - Reads num_classes and channels from MEDMNIST INFO
+       - Works with MedMNIST (uses INFO) and torchvision datasets MNIST/CIFAR10.
        - max_samples: if provided, truncates each split to max_samples
     """
     print(f"Preparing comprehensive dataset for {dataset_name}...")
 
-    if dataset_name not in INFO:
-        raise ValueError(f"{dataset_name} not found in medmnist.INFO")
+    dataset_name_lower = dataset_name.lower()
 
-    info = INFO[dataset_name]
-    num_classes = len(info.get('label', {}))
-    channels = int(info.get('n_channels', 1))
+    # Handle torchvision datasets (minimal explicit metadata)
+    if dataset_name_lower in ['mnist', 'cifar10']:
+        if dataset_name_lower == 'mnist':
+            num_classes = 10
+            channels = 1
+        else:  # cifar10
+            num_classes = 10
+            channels = 3
+    else:
+        # MedMNIST datasets must exist in INFO
+        if dataset_name not in INFO:
+            raise ValueError(f"{dataset_name} not found in medmnist.INFO")
+        info = INFO[dataset_name]
+        num_classes = len(info.get('label', {}))
+        channels = int(info.get('n_channels', 1))
 
     # create model according to what your ResNet accepts.
-    # If ResNet18_MedMNIST supports an `in_channels` argument, pass it; else default to expectation in model
+    # If ResNet18_MedMNIST supports an `in_channels` argument, pass it; else fallback.
     try:
         model = ResNet18_MedMNIST(num_classes=num_classes, in_channels=(3 if (channels == 1) else channels)).to(device)
     except TypeError:
-        # fallback if ResNet18_MedMNIST only accepts num_classes
         model = ResNet18_MedMNIST(num_classes=num_classes).to(device)
 
     splits = ['train', 'val', 'test']
@@ -259,8 +269,8 @@ def prepare_dataset_comprehensive(dataset_name, device='cuda', max_samples=None)
         print(f"\nProcessing {split} split...")
 
         try:
-            if dataset_name.lower() in ['mnist', 'cifar10']:
-                dataloader = get_torchvision_dataloader(dataset_name, batch_size, split)
+            if dataset_name_lower in ['mnist', 'cifar10']:
+                dataloader = get_torchvision_dataloader(dataset_name_lower, batch_size, split)
             else:
                 dataloader = get_medmnist_dataloader(dataset_name, batch_size, split)
         except Exception as e:
@@ -316,7 +326,13 @@ def prepare_dataset_comprehensive(dataset_name, device='cuda', max_samples=None)
                     adv_images_half = adv_images[:half_len]
                     adv_labels_half = adv_labels[:half_len]
 
-                    save_path = os.path.join(KAGGLE_DATA_DIR, dataset_name, attack_type, strength, 'splits')
+                    save_path = os.path.join(
+                        KAGGLE_DATA_DIR,
+                        dataset_name_lower if dataset_name_lower in ['mnist','cifar10'] else dataset_name,
+                        attack_type,
+                        strength,
+                        'splits'
+                    )
                     os.makedirs(save_path, exist_ok=True)
 
                     data = {
