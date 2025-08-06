@@ -77,6 +77,10 @@ def get_num_classes(dataset_name):
         return 11
     elif dataset_name == 'chestmnist': # failed - invi
         return 14
+    elif dataset_name == 'mnist':
+        return 10
+    elif dataset_name == 'cifar10':
+        return 10
     else:
         raise ValueError(f"Unknown dataset name: {dataset_name}")
 

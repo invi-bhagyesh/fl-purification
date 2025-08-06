@@ -124,6 +124,10 @@ class Pipeline:
                 num_classes = 11
             elif config['dataset_name'] == 'chestmnist':
                 num_classes = 14
+            elif config['dataset_name'] == 'mnist':
+                num_classes = 10
+            elif config['dataset_name'] == 'cifar10':
+                num_classes = 10
             else:
                 num_classes = 8  # default
             
@@ -208,6 +212,10 @@ def get_num_classes(dataset_name):
         return 11
     elif dataset_name == 'chestmnist': 
         return 14
+    elif dataset_name == 'mnist':
+        return 10
+    elif dataset_name == 'cifar10':
+        return 10
     else:
         raise ValueError(f"Unknown dataset name: {dataset_name}")
 

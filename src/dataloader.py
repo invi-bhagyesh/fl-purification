@@ -14,6 +14,8 @@ import torchattacks
 from torchattacks import CW
 from utils.Attacks import fgsm_attack, pgd_attack, carlini_attack
 from models.resnet18 import BasicBlock, ResNet18_MedMNIST
+import torchvision.datasets as tvdatasets
+
 
 # Kaggle-specific paths
 KAGGLE_INPUT_DIR = "/kaggle/input"

@@ -46,7 +46,7 @@ def main():
                        choices = [
     'bloodmnist', 'pathmnist', 'dermamnist', 'octmnist',
     'pneumoniamnist', 'retinamnist', 'breastmnist', 'tissuemnist',
-    'organamnist', 'organcmnist', 'organsmnist', 'chestmnist'],
+    'organamnist', 'organcmnist', 'organsmnist', 'chestmnist', 'mnist', 'cifar10'],
                        help='MedMNIST dataset to use')
     
     parser.add_argument('--attack_type', type=str, default='carlini',
