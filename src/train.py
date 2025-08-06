@@ -20,7 +20,9 @@ import lpips
 
 # Import models
 import sys
-sys.path.append(os.path.join(os.path.dirname(__file__, '..', 'models')))
+sys.path.append(
+    os.path.join(os.path.dirname(__file__), '..', 'models')
+)
 from models.DAE import DenoisingAutoEncoder
 from models.hypernet import AdaptiveLaplacianPyramidUNet
 from models.resnet18 import ResNet18_MedMNIST
