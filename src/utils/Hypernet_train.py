@@ -7,6 +7,7 @@ import medmnist
 from medmnist import INFO
 from utils.utils import batch_psnr_ssim
 from tqdm import tqdm
+import os
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
