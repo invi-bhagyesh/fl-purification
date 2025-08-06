@@ -22,7 +22,7 @@ def train_autoencoder(model, train_loader, val_loader, device, num_epochs=10, le
         num_batches = 0
         
         progress_bar = tqdm(train_loader, desc=f'Epoch {epoch+1}/{num_epochs}')
-        for images, pert_labels, true_labels in progress_bar:
+        for images, true_labels in progress_bar:
             images = images.to(device)
             optimizer.zero_grad()
             outputs = model(images)
@@ -56,7 +56,7 @@ def train_autoencoder(model, train_loader, val_loader, device, num_epochs=10, le
         val_batches = 0
         
         with torch.no_grad():
-            for images, pert_labels, true_labels in val_loader:
+            for images, true_labels in val_loader:
                 images = images.to(device)
                 outputs = model(images)
                 loss = criterion(outputs, images)
