@@ -20,7 +20,7 @@ import lpips
 
 # Import models
 import sys
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'models'))
+sys.path.append(os.path.join(os.path.dirname(__file__, '..', 'models'))
 from models.DAE import DenoisingAutoEncoder
 from models.hypernet import AdaptiveLaplacianPyramidUNet
 from models.resnet18 import ResNet18_MedMNIST
@@ -31,8 +31,8 @@ from models.AE import SimpleAutoencoder
 from dataloader import (
     load_kaggle_dataset, 
     create_dataloader_from_kaggle_data,
-    create_clean_only_dataloader_from_kaggle_data,  # NEW: Import clean-only dataloader
-    get_clean_only_dataloader,  # NEW: Import direct clean dataloader
+    create_clean_only_dataloader_from_kaggle_data,
+    get_clean_only_dataloader,
     load_multiple_attacks,
     get_dataset_info,
     list_available_kaggle_datasets
@@ -48,29 +48,29 @@ from utils.Hypernet_train import train_hypernet
 
 def get_num_classes(dataset_name):
     """Get number of classes for a given MedMNIST dataset"""
-    if dataset_name == 'bloodmnist': # doing - invi
+    if dataset_name == 'bloodmnist':
         return 8
-    elif dataset_name == 'pathmnist': # doing - akshat
+    elif dataset_name == 'pathmnist':
         return 9
-    elif dataset_name == 'dermamnist': # doing - akshat
+    elif dataset_name == 'dermamnist':
         return 7
-    elif dataset_name == 'octmnist': # failed 
+    elif dataset_name == 'octmnist':
         return 4
-    elif dataset_name == 'pneumoniamnist': # failed
+    elif dataset_name == 'pneumoniamnist':
         return 2
-    elif dataset_name == 'retinamnist': # doing - akshat
+    elif dataset_name == 'retinamnist':
         return 5
-    elif dataset_name == 'breastmnist': # failed
+    elif dataset_name == 'breastmnist':
         return 2
     elif dataset_name == 'tissuemnist':
         return 8
-    elif dataset_name == 'organamnist': # failed - dishita
+    elif dataset_name == 'organamnist':
         return 11
-    elif dataset_name == 'organcmnist': # failed - invi p
+    elif dataset_name == 'organcmnist':
         return 11
     elif dataset_name == 'organsmnist':
         return 11
-    elif dataset_name == 'chestmnist': # failed - invi
+    elif dataset_name == 'chestmnist':
         return 14
     elif dataset_name == 'mnist':
         return 10
@@ -78,6 +78,78 @@ def get_num_classes(dataset_name):
         return 10
     else:
         raise ValueError(f"Unknown dataset name: {dataset_name}")
+
+
+def create_clean_only_dataloaders_for_kaggle(config):
+    """
+    Create clean-only dataloaders that work with both detector and classifier/reformer
+    Uses the Kaggle dataset but extracts only clean images in the right format
+    """
+    print("Creating clean-only dataloaders from Kaggle dataset...")
+    
+    try:
+        # Load any attack data (we'll just use the clean portion)
+        attack_strength = config.get('attack_strength', 'weak')
+        available_attacks = ['fgsm', 'pgd', 'carlini']
+        
+        # Try to find any available attack data to extract clean images
+        train_data = None
+        val_data = None
+        
+        for attack_type in available_attacks:
+            try:
+                train_data = load_kaggle_dataset(
+                    config['dataset_name'], 
+                    attack_type, 
+                    attack_strength, 
+                    split='train'
+                )
+                val_data = load_kaggle_dataset(
+                    config['dataset_name'], 
+                    attack_type, 
+                    attack_strength, 
+                    split='val'
+                )
+                print(f"Found Kaggle data using {attack_type} attack (will use clean portion only)")
+                break
+            except Exception as e:
+                print(f"Could not load {attack_type} data: {e}")
+                continue
+        
+        if train_data is None:
+            raise Exception("Could not load any Kaggle attack data to extract clean images")
+        
+        # Extract only clean images from the dataset
+        train_clean_images = train_data['clean_images']
+        train_clean_labels = train_data['clean_labels']
+        val_clean_images = val_data['clean_images']
+        val_clean_labels = val_data['clean_labels']
+        
+        # Create perturbation labels (all 0 since all are clean)
+        train_pert_labels = torch.zeros(len(train_clean_images))
+        val_pert_labels = torch.zeros(len(val_clean_images))
+        
+        # Create datasets with the expected format: (images, pert_labels, true_labels)
+        train_dataset = TensorDataset(train_clean_images, train_pert_labels, train_clean_labels)
+        val_dataset = TensorDataset(val_clean_images, val_pert_labels, val_clean_labels)
+        
+        # Create dataloaders
+        train_loader = DataLoader(train_dataset, batch_size=config['batch_size'], shuffle=True)
+        val_loader = DataLoader(val_dataset, batch_size=config['batch_size'], shuffle=False)
+        
+        print(f"Clean-only dataloaders created:")
+        print(f"  Train samples: {len(train_clean_images)}")
+        print(f"  Val samples: {len(val_clean_images)}")
+        print(f"  Train batches: {len(train_loader)}")
+        print(f"  Val batches: {len(val_loader)}")
+        
+        return train_loader, val_loader
+        
+    except Exception as e:
+        print(f"Error creating clean-only dataloaders: {e}")
+        return None, None
+
+
 
 
 def train_detector(config, train_loader, val_loader):
@@ -99,6 +171,7 @@ def train_detector(config, train_loader, val_loader):
     )
     
     return trained_model
+
 
 def train_reformer(config, train_loader, val_loader):
     """Train reformer model"""
@@ -123,7 +196,7 @@ def train_reformer(config, train_loader, val_loader):
             num_epochs=config['epochs'],
             config=config
         )
-        
+
     elif reformer_type == 'denoising_autoencoder':
         reformer = DenoisingAutoEncoder(
             image_shape=(3, 28, 28), 
@@ -142,6 +215,7 @@ def train_reformer(config, train_loader, val_loader):
         raise ValueError(f"Unknown reformer type: {reformer_type}")
     
     return trained_model
+
 
 def train_classifier(config, train_loader, val_loader):
     """Train classifier model"""
@@ -166,16 +240,17 @@ def train_classifier(config, train_loader, val_loader):
     
     return trained_model
 
+
 def train_model(config):
     """Main training function - supports individual model training"""
     print(f"Starting training with pipeline: {config['pipeline_type']}")
     print(f"Dataset: {config['dataset_name']}")
     print(f"Attack type: {config['attack_type']}")
-    print(f"Train clean only: {config.get('train_clean_only', False)}")  # NEW: Log clean training mode
+    print(f"Train clean only: {config.get('train_clean_only', False)}")
     
     # Check if we're in Kaggle mode
     kaggle_mode = config.get('kaggle_mode', False)
-    train_clean_only = config.get('train_clean_only', False)  # NEW: Get clean training flag
+    train_clean_only = config.get('train_clean_only', False)
     
     if kaggle_mode:
         print("Using Kaggle dataloader...")
@@ -193,74 +268,14 @@ def train_model(config):
         print(f"Available strengths: {dataset_info['available_strengths']}")
         
         if train_clean_only:
-            # NEW: Train on clean data only - use direct clean dataloader
+            # NEW: Use clean-only dataloaders that work with all models
             print("Training on CLEAN DATA ONLY...")
-            try:
-                train_loader = get_clean_only_dataloader(
-                    config['dataset_name'], 
-                    config['batch_size'], 
-                    split='train'
-                )
-                val_loader = get_clean_only_dataloader(
-                    config['dataset_name'], 
-                    config['batch_size'], 
-                    split='val'
-                )
-                
-                print(f"Successfully loaded clean-only data:")
-                print(f"  Train batches: {len(train_loader)}")
-                print(f"  Val batches: {len(val_loader)}")
-                
-            except Exception as e:
-                print(f"Error loading clean data: {e}")
-                return None
+            train_loader, val_loader = create_clean_only_dataloaders_for_kaggle(config)
         
-        else:
-            # Original behavior - load adversarial + clean data
-            attack_type = config['attack_type']
-            strength = config.get('attack_strength', 'weak')
+        if train_loader is None or val_loader is None:
+            print("Failed to create dataloaders")
+            return None
             
-            if attack_type == 'none':
-                print("No attack specified, using clean data only")
-                attack_type = 'fgsm'  # dummy, will be filtered out
-            
-            try:
-                # Load training data
-                train_data = load_kaggle_dataset(
-                    config['dataset_name'], 
-                    attack_type, 
-                    strength, 
-                    split='train'
-                )
-                
-                # Load validation data
-                val_data = load_kaggle_dataset(
-                    config['dataset_name'], 
-                    attack_type, 
-                    strength, 
-                    split='val'
-                )
-                
-                # Create dataloaders
-                train_loader = create_dataloader_from_kaggle_data(
-                    train_data, 
-                    batch_size=config['batch_size'], 
-                    shuffle=True
-                )
-                val_loader = create_dataloader_from_kaggle_data(
-                    val_data, 
-                    batch_size=config['batch_size'], 
-                    shuffle=False
-                )
-                
-                print(f"Successfully loaded Kaggle data:")
-                print(f"  Train batches: {len(train_loader)}")
-                print(f"  Val batches: {len(val_loader)}")
-                
-            except Exception as e:
-                print(f"Error loading Kaggle data: {e}")
-                return None
-    
     else:
         # Legacy mode - use local data preparation
         print("Using local data preparation...")
@@ -272,7 +287,7 @@ def train_model(config):
             clean_val = load_prepared_data(config['dataset_name'], split='val', data_dir=data_dir)
             
             if train_clean_only:
-                # NEW: Use only clean data for training
+                # Use only clean data for training
                 print("Training on CLEAN DATA ONLY...")
                 train_images, train_pert_labels, train_true_labels = clean_train['images'], torch.zeros(len(clean_train['images'])), clean_train['labels']
                 val_images, val_pert_labels, val_true_labels = clean_val['images'], torch.zeros(len(clean_val['images'])), clean_val['labels']
@@ -326,6 +341,7 @@ def train_model(config):
     
     print("Training completed!")
 
+
 def main(config):
     """Main training function that takes a config dictionary"""
     print(f"Training {config['pipeline_type']} model...")
@@ -334,7 +350,7 @@ def main(config):
     print(f"Epochs: {config['epochs']}")
     print(f"Batch size: {config['batch_size']}")
     print(f"Learning rate: {config['lr']}")
-    print(f"Train clean only: {config.get('train_clean_only', False)}")  # NEW: Log clean training flag
+    print(f"Train clean only: {config.get('train_clean_only', False)}")
     
     # Train model
     train_model(config)

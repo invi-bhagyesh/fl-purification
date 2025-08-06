@@ -23,7 +23,7 @@ def train_resnet18(model, train_loader, val_loader, device, num_epochs=10, learn
         total = 0
 
         progress_bar = tqdm(train_loader, desc=f'Epoch {epoch+1}/{num_epochs}')
-        for images, true_labels in progress_bar:
+        for images, pert_labels, true_labels in progress_bar:
             images, labels = images.to(device), true_labels.squeeze().long().to(device)
             optimizer.zero_grad()
             outputs = model(images)
@@ -55,7 +55,7 @@ def train_resnet18(model, train_loader, val_loader, device, num_epochs=10, learn
         val_total = 0
         
         with torch.no_grad():
-            for images, true_labels in val_loader:
+            for images, pert_labels, true_labels in val_loader:
                 images, labels = images.to(device), true_labels.squeeze().long().to(device)
                 outputs = model(images)
                 loss = criterion(outputs, labels)

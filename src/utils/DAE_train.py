@@ -21,7 +21,7 @@ def train_denoising_autoencoder(model, train_loader, val_loader, device, num_epo
         num_batches = 0
         
         progress_bar = tqdm(train_loader, desc=f'Epoch {epoch+1}/{num_epochs}')
-        for images, true_labels in progress_bar:
+        for images, pert_labels, true_labels in progress_bar:
             images = images.to(device)
             # Forward pass for bottleneck noise (as in your model's forward)
             output = model(images)
@@ -56,7 +56,7 @@ def train_denoising_autoencoder(model, train_loader, val_loader, device, num_epo
         val_batches = 0
         
         with torch.no_grad():
-            for images, true_labels in val_loader:
+            for images, pert_labels, true_labels in val_loader:
                 images = images.to(device)
                 val_output = model(images)
                 loss = F.mse_loss(val_output, images)
