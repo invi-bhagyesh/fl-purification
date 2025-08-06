@@ -3,7 +3,7 @@ import torch.nn.functional as F
 from tqdm import tqdm
 import os
 from utils.utils import batch_psnr_ssim
-
+import torch
 
 def train_denoising_autoencoder(model, train_loader, val_loader, device, num_epochs=100, reg_strength=1e-9, config=None):
     """Enhanced denoising autoencoder training based on DAE_train.py"""

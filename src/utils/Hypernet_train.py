@@ -5,6 +5,7 @@ import torch.optim as optim
 import torchvision.transforms as transforms
 import medmnist
 from medmnist import INFO
+from utils.utils import batch_psnr_ssim
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
