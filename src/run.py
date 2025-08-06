@@ -62,7 +62,7 @@ def main():
     
     # Reformer specific
     parser.add_argument('--reformer_type', type=str, default='hypernet',
-                       choices=['hypernet', 'autoencoder', 'denoising_autoencoder'],
+                       choices=['hypernet', 'denoising_autoencoder'],
                        help='Type of reformer to use')
     
     # Data configuration
