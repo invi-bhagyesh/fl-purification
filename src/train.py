@@ -27,6 +27,10 @@ class CleanDataWrapper:
         
     def __len__(self):
         return len(self.base_loader)
+    
+    @property
+    def dataset(self):
+        return self.base_loader.dataset
         
     def __iter__(self):
         for batch in self.base_loader:
