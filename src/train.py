@@ -51,23 +51,13 @@ sys.path.append(
 from models.DAE import DenoisingAutoEncoder
 from models.hypernet import AdaptiveLaplacianPyramidUNet
 from models.resnet18 import ResNet18_MedMNIST
-from models.victim import SimpleCNN
 from models.AE import SimpleAutoencoder
 
 # Import utilities
 from dataloader import (
-    load_kaggle_dataset, 
-    create_dataloader_from_kaggle_data,
-    create_clean_only_dataloader_from_kaggle_data,
-    get_clean_only_dataloader,
-    load_multiple_attacks,
-    get_dataset_info,
-    list_available_kaggle_datasets,
     get_medmnist_dataloader,
     get_torchvision_dataloader
 )
-from utils.Attacks import fgsm_attack, pgd_attack, carlini_attack
-from utils.utils import batch_psnr_ssim
 
 from utils.Resnet18_train import train_resnet18
 from utils.AE_train import train_autoencoder
@@ -138,55 +128,6 @@ def create_clean_dataloaders_onthefly(config):
     except Exception as e:
         print(f"Error creating on-the-fly dataloaders: {e}")
         return None, None
-
-
-def create_clean_only_dataloaders_for_kaggle(config):
-    """Create dataloaders with clean data only from Kaggle dataset."""
-    print("Creating clean-only dataloaders from Kaggle dataset...")
-    try:
-        # For clean-only mode, we load any attack configuration but only use clean images
-        # Here we arbitrarily use 'fgsm' with 'weak' strength for both splits.
-        train_data = load_kaggle_dataset(
-            dataset_name=config['dataset_name'],
-            attack_type='fgsm',
-            strength='weak',
-            split='train'
-        )
-        val_data = load_kaggle_dataset(
-            dataset_name=config['dataset_name'],
-            attack_type='fgsm',
-            strength='weak',
-            split='val'
-        )
-        
-        # Use the clean-only dataloader function (these already return 3-tuple format)
-        train_loader = create_clean_only_dataloader_from_kaggle_data(train_data, batch_size=config['batch_size'])
-        val_loader = create_clean_only_dataloader_from_kaggle_data(val_data, batch_size=config['batch_size'])
-        
-        print("Clean-only dataloaders created:")
-        print(f"  Train samples: {len(train_data['clean_images'])}")
-        print(f"  Val samples: {len(val_data['clean_images'])}")
-        print(f"  Train batches: {len(train_loader)}")
-        print(f"  Val batches: {len(val_loader)}")
-        
-        return train_loader, val_loader
-        
-    except Exception as e:
-        print(f"Error creating clean-only dataloaders: {e}")
-        return None, None
-
-
-def load_prepared_data(dataset_name, attack_type=None, split='train', data_dir='./data_cache'):
-    """Load prepared data from cache - placeholder function for legacy mode"""
-    # This is a placeholder - you would implement actual loading logic here
-    # based on your existing data preparation pipeline
-    raise NotImplementedError("Legacy data loading not implemented in this example")
-
-
-def create_combined_dataset(clean_data, adv_data, adv_ratio=0.5):
-    """Create combined dataset from clean and adversarial data - placeholder function"""
-    # This is a placeholder - you would implement actual combining logic here
-    raise NotImplementedError("Combined dataset creation not implemented in this example")
 
 
 def train_detector(config, train_loader, val_loader):
@@ -274,7 +215,6 @@ def train_classifier(config, train_loader, val_loader):
         learning_rate=config['lr'],
         config=config
     )
-    
     return trained_model
 
 
@@ -291,28 +231,12 @@ def train_model(config):
     
     train_loader, val_loader = None, None
     
-    # MODIFIED: Always use clean data for training (either on-the-fly or from Kaggle)
-    # This makes training faster and doesn't require uploading large adversarial datasets
     
     print("=== TRAINING ON CLEAN DATA ONLY ===")
     
-    if kaggle_mode:
-        print("Kaggle mode: Checking for pre-prepared clean data...")
-        # Check if Kaggle dataset exists
-        available_datasets = list_available_kaggle_datasets()
-        dataset_info = get_dataset_info(config['dataset_name'])
-        
-        if dataset_info and dataset_info['available_attacks']:
-            print(f"Found Kaggle dataset with attacks: {dataset_info['available_attacks']}")
-            print("Using clean data from Kaggle dataset...")
-            train_loader, val_loader = create_clean_only_dataloaders_for_kaggle(config)
-        else:
-            print("No Kaggle dataset found, falling back to on-the-fly clean data...")
-            train_loader, val_loader = create_clean_dataloaders_onthefly(config)
-    else:
-        print("Local mode: Creating clean data on-the-fly...")
-        # Always create clean data on-the-fly for local mode
-        train_loader, val_loader = create_clean_dataloaders_onthefly(config)
+
+    print("Local mode: Creating clean data on-the-fly...")
+    train_loader, val_loader = create_clean_dataloaders_onthefly(config)
     
     if train_loader is None or val_loader is None:
         print("Failed to create dataloaders")
