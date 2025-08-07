@@ -52,6 +52,10 @@ class DenoisingAutoEncoder(nn.Module):
 
     def forward(self, x):
         encoded = self.encoder(x)
+        # Add noise to bottleneck if enabled
+        if self.v_noise > 0.0:
+            noise = self.v_noise * torch.randn_like(encoded)
+            encoded = encoded + noise
         decoded = self.decoder(encoded)
         return decoded
 
