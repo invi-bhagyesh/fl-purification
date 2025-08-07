@@ -56,7 +56,7 @@ def train_denoising_autoencoder(model, train_loader, val_loader, device, num_epo
         val_batches = 0
         
         with torch.no_grad():
-            for images, pert_labels, true_labels in val_loader:
+            for images, true_labels in val_loader:
                 images = images.to(device)
                 val_output = model(images)
                 loss = F.mse_loss(val_output, images)
