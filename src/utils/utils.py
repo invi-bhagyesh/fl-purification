@@ -1,9 +1,9 @@
 import torch
 from sklearn.metrics import f1_score, precision_score, recall_score, accuracy_score
-from skimage.metrics import peak_signal_noise_ratio as compute_psnr
 from skimage.metrics import structural_similarity as compute_ssim
 import torch.nn.functional as Fnn
 import numpy as np
+from torchmetrics.functional import peak_signal_noise_ratio
 
 def softmax_with_temperature(logits, temperature):
     exp_logits = torch.exp(logits / temperature)
@@ -33,7 +33,11 @@ def batch_psnr_ssim(originals, reconstructions, data_range=1.0):
         orig = np.transpose(originals[i], (1, 2, 0))  # (H,W,C)
         recon = np.transpose(reconstructions[i], (1, 2, 0))
         
-        psnr = compute_psnr(orig, recon, data_range=data_range)
+        psnr = peak_signal_noise_ratio(
+            torch.tensor(recon).permute(2, 0, 1).unsqueeze(0),
+            torch.tensor(orig).permute(2, 0, 1).unsqueeze(0),
+            data_range=data_range
+        ).item()
         psnr_vals.append(psnr)
         
         # SSIM for multi-channel
