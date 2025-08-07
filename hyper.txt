@@ -1,0 +1,4 @@
+3 kernels
+bloodmnist
+l1 + l2
+l2-> usual 
