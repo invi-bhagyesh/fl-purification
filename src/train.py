@@ -4,21 +4,29 @@ Comprehensive training script for FL-Purification
 Supports individual model training, pipeline training, and data preparation
 Modified to create clean data on-the-fly for training
 """
-
+# Import models
+import sys
+sys.path.append(
+    os.path.join(os.path.dirname(__file__), '..', 'models')
+)
 import torch
-import torch.nn as nn
-import torch.optim as optim
-import torch.nn.functional as F
-from torch.utils.data import DataLoader, TensorDataset
-import numpy as np
-from tqdm import tqdm
 import os
 import wandb
-from sklearn.metrics import f1_score, precision_score, recall_score, accuracy_score, roc_auc_score
-from skimage.metrics import peak_signal_noise_ratio as compute_psnr
-from skimage.metrics import structural_similarity as compute_ssim
-import lpips
+from utils.Resnet18_train import train_resnet18
+from utils.AE_train import train_autoencoder
+from utils.DAE_train import train_denoising_autoencoder
+from utils.Hypernet_train import train_hypernet
 
+from models.DAE import DenoisingAutoEncoder
+from models.hypernet import AdaptiveLaplacianPyramidUNet
+from models.resnet18 import ResNet18_MedMNIST
+from models.AE import SimpleAutoencoder
+
+# Import utilities
+from dataloader import (
+    get_medmnist_dataloader,
+    get_torchvision_dataloader
+)
 
 class CleanDataWrapper:
     """Wrapper to convert 2-tuple dataloaders to 3-tuple format for training functions"""
@@ -43,26 +51,8 @@ class CleanDataWrapper:
                 # Already in correct format
                 yield batch
 
-# Import models
-import sys
-sys.path.append(
-    os.path.join(os.path.dirname(__file__), '..', 'models')
-)
-from models.DAE import DenoisingAutoEncoder
-from models.hypernet import AdaptiveLaplacianPyramidUNet
-from models.resnet18 import ResNet18_MedMNIST
-from models.AE import SimpleAutoencoder
 
-# Import utilities
-from dataloader import (
-    get_medmnist_dataloader,
-    get_torchvision_dataloader
-)
 
-from utils.Resnet18_train import train_resnet18
-from utils.AE_train import train_autoencoder
-from utils.DAE_train import train_denoising_autoencoder
-from utils.Hypernet_train import train_hypernet
 
 
 def get_num_classes(dataset_name):

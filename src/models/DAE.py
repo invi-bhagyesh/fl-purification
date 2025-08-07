@@ -6,7 +6,7 @@ import os
 import numpy as np
 
 class DenoisingAutoEncoder(nn.Module):
-    def __init__(self, image_shape, structure, v_noise=0.0, activation="relu", model_dir="./defensive_models/", reg_strength=0.0):
+    def __init__(self, image_shape, structure, v_noise=0.1, activation="relu", model_dir="./defensive_models/", reg_strength=0.0):
         super(DenoisingAutoEncoder, self).__init__()
         self.image_shape = image_shape
         self.model_dir = model_dir
