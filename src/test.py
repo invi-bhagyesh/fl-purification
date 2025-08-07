@@ -60,7 +60,7 @@ class Detector(nn.Module):
         
         # Convert to 2-class output format [clean_prob, adversarial_prob]
         clean_prob = 1.0 - is_adversarial
-        adversarial_prob = is_adversarial
+        adversarial_prob = is_adversarial 
         
         # Stack into 2-class output
         output = torch.stack([clean_prob, adversarial_prob], dim=1)
@@ -245,7 +245,7 @@ def test_individual_model(config, model_type):
         
         if attack_type == 'none':
             print("No attack specified, using clean data only")
-            attack_type = 'fgsm'  # dummy, will be filtered out
+            attack_type = 'fgsm' 
         
         try:
             test_data = load_kaggle_dataset(
