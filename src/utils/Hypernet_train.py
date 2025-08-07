@@ -31,7 +31,7 @@ def train_hypernet(model, train_loader, val_loader, device, num_epochs=20, confi
         for images, pert_labels, true_labels in progress_bar:
             images = images.to(device, dtype=torch.float)
             # If using actual noisy/attacked images, replace images as needed
-            noise_std = 0.2  # You can experiment with this value
+            noise_std = 0.2  
             noisy_images = images + noise_std * torch.randn_like(images)
             noisy_images = torch.clamp(noisy_images, 0, 1)
             clean_images = images

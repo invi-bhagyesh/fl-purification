@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import segmentation_models_pytorch as smp
 
+# hypernetwork
 class AdaptiveKernelHypernet(nn.Module):
     """
     Hypernetwork that predicts optimal kernels for Laplacian pyramid decomposition
@@ -55,10 +56,10 @@ class AdaptiveKernelHypernet(nn.Module):
         x = self.conv_layers(image)  # [B, 1, kernel_size, kernel_size]
         
         # Normalize kernel to ensure proper convolution properties
-        batch_size = x.shape[0]
-        kernel_flat = x.view(batch_size, -1)
-        kernel_normalized = self.kernel_norm(kernel_flat)
-        kernel = kernel_normalized.view(batch_size, 1, self.kernel_size, self.kernel_size)
+        batch_size = x.shape[0] # get batch size
+        kernel_flat = x.view(batch_size, -1) # [B, kernel_size*kernel_size]
+        kernel_normalized = self.kernel_norm(kernel_flat) # normalize the kernel
+        kernel = kernel_normalized.view(batch_size, 1, self.kernel_size, self.kernel_size) 
         
         return kernel
 
@@ -80,7 +81,7 @@ class AdaptiveLaplacianPyramidEncoder(nn.Module):
         batch_size, channels = img.shape[0], img.shape[1]
         
         # Expand kernel to match input channels
-        kernel_expanded = kernel.repeat(1, channels, 1, 1)  # [B, C, K, K]
+        kernel_expanded = kernel.repeat(1, channels, 1, 1)  # [B, C, K, K] -> [B, 3, kernel_size, kernel_size]
         
         # Apply padding
         pad_size = self.kernel_size // 2
@@ -146,11 +147,12 @@ class PyramidToEncoderAdapter(nn.Module):
             nn.BatchNorm2d(target_channels//2),
             nn.ReLU(inplace=True),
             nn.Conv2d(target_channels//2, target_channels, 3, padding=1),
-            nn.BatchNorm2d(target_channels),
-            nn.ReLU(inplace=True)
+            nn.BatchNorm2d(target_channels), # project to target channels
+            nn.ReLU(inplace=True) 
         )
     
     def forward(self, x):
+        
         return self.adapter(x)
 
 class AdaptiveLaplacianPyramidUNet(nn.Module):
@@ -199,8 +201,8 @@ class AdaptiveLaplacianPyramidUNet(nn.Module):
         
         # Segmentation head
         self.segmentation_head = nn.Conv2d(
-            decoder_channels[-1], 
-            3,
+            decoder_channels[-1],  # input channels from decoder
+            3, # output channels (RGB)
             kernel_size=3, 
             padding=1
         )
@@ -226,7 +228,7 @@ class AdaptiveLaplacianPyramidUNet(nn.Module):
         
         for i, pyramid_level in enumerate(pyramid):
             if i < len(self.feature_adapters):
-                adapted_features = self.feature_adapters[i](pyramid_level)
+                adapted_features = self.feature_adapters[i](pyramid_level) # adapt pyramid level channels to encoder channels
                 features.append(adapted_features)
         
         # Pass through decoder

@@ -30,7 +30,6 @@ from models.AE import SimpleAutoencoder
 from dataloader import (
     load_kaggle_dataset, 
     create_dataloader_from_kaggle_data,
-    load_multiple_attacks,
     get_dataset_info,
     list_available_kaggle_datasets
 )
@@ -60,7 +59,7 @@ class Detector(nn.Module):
         
         # Convert to 2-class output format [clean_prob, adversarial_prob]
         clean_prob = 1.0 - is_adversarial
-        adversarial_prob = is_adversarial 
+        adversarial_prob = is_adversarial
         
         # Stack into 2-class output
         output = torch.stack([clean_prob, adversarial_prob], dim=1)

@@ -22,9 +22,11 @@ def train_autoencoder(model, train_loader, val_loader, device, num_epochs=10, le
         num_batches = 0
         
         progress_bar = tqdm(train_loader, desc=f'Epoch {epoch+1}/{num_epochs}')
-        for images, pert_labels, true_labels in progress_bar:
+        for images, _ in progress_bar:
             images = images.to(device)
+            
             optimizer.zero_grad()
+
             outputs = model(images)
             loss = criterion(outputs, images)
             loss.backward()
