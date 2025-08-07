@@ -6,11 +6,12 @@ Modified to create clean data on-the-fly for training
 """
 # Import models
 import sys
+import os
 sys.path.append(
     os.path.join(os.path.dirname(__file__), '..', 'models')
 )
 import torch
-import os
+
 import wandb
 from utils.Resnet18_train import train_resnet18
 from utils.AE_train import train_autoencoder
@@ -96,7 +97,6 @@ def create_clean_dataloaders_onthefly(config):
     batch_size = config['batch_size']
     
     try:
-        # Use the existing dataloader functions to get clean data directly
         if dataset_name.lower() in ['mnist', 'cifar10']:
             base_train_loader = get_torchvision_dataloader(dataset_name, batch_size, 'train')
             base_val_loader = get_torchvision_dataloader(dataset_name, batch_size, 'val')
