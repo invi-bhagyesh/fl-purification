@@ -24,7 +24,6 @@ KAGGLE_INPUT_DIR = "/kaggle/input"
 KAGGLE_WORKING_DIR = "/kaggle/working"
 KAGGLE_DATA_DIR = "/kaggle/working/fl_purification_data"
 
-# Simplified dataset listing. We'll read channels & num_classes from medmnist.INFO dynamically.
 AVAILABLE_DATASETS = {
     'bloodmnist': {},
     'pathmnist': {},
@@ -57,15 +56,6 @@ ATTACK_CONFIGS = {
     }
 }
 
-
-def get_clean_only_dataloader(dataset_name, batch_size, split='train', num_workers=2):
-    """Create dataloader with clean data only (no adversarial examples).
-       Used for training on clean data only.
-    """
-    if dataset_name.lower() in ['mnist', 'cifar10']:
-        return get_torchvision_dataloader(dataset_name, batch_size, split, num_workers)
-    else:
-        return get_medmnist_dataloader(dataset_name, batch_size, split, num_workers)
 
 
 def get_medmnist_dataloader(dataset_name, batch_size, split='train', num_workers=2):
@@ -460,16 +450,6 @@ def create_dataloader_from_kaggle_data(data, batch_size=64, shuffle=True):
     return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
 
 
-def create_clean_only_dataloader_from_kaggle_data(data, batch_size=64, shuffle=True):
-    """Create dataloader with ONLY clean images from Kaggle data - for training on clean data only"""
-    clean_images = data['clean_images']
-    clean_labels = data['clean_labels']
-    
-    # Only use clean images, no adversarial
-    pert_labels = torch.zeros(len(clean_images))  # All are clean (label 0)
-    
-    dataset = TensorDataset(clean_images, pert_labels, clean_labels)
-    return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
 
 
 def list_available_kaggle_datasets():
@@ -536,34 +516,6 @@ def get_dataset_info(dataset_name, kaggle_dataset_name=None):
 
     return info
 
-
-def load_multiple_attacks(dataset_name, attack_types, strength, split='train', kaggle_dataset_name=None):
-    """Load data for multiple attack types and combine them"""
-    all_data = []
-
-    for attack_type in attack_types:
-        try:
-            data = load_kaggle_dataset(dataset_name, attack_type, strength, split, kaggle_dataset_name)
-            all_data.append(data)
-            print(f"Loaded {attack_type} attack data: {len(data['clean_images'])} samples")
-        except FileNotFoundError as e:
-            print(f"Warning: Could not load {attack_type} attack data: {e}")
-            continue
-
-    if not all_data:
-        raise FileNotFoundError(f"No attack data found for {attack_types}")
-
-    combined_data = {
-        'clean_images': torch.cat([d['clean_images'] for d in all_data], dim=0),
-        'clean_labels': torch.cat([d['clean_labels'] for d in all_data], dim=0),
-        'adv_images': torch.cat([d['adv_images'] for d in all_data], dim=0),
-        'adv_labels': torch.cat([d['adv_labels'] for d in all_data], dim=0),
-        'attack_type': 'combined',
-        'strength': strength,
-        'split': split
-    }
-
-    return combined_data
 
 
 def main():
