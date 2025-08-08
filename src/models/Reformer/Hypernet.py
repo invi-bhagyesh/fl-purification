@@ -1,4 +1,3 @@
-# Reformer
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -166,7 +165,8 @@ class AdaptiveLaplacianPyramidUNet(nn.Module):
         super(AdaptiveLaplacianPyramidUNet, self).__init__()
         
         self.num_pyramid_levels = num_pyramid_levels
-        
+        self.v_noise = None
+
         # Adaptive Laplacian Pyramid Encoder with Hypernetwork
         self.pyramid_encoder = AdaptiveLaplacianPyramidEncoder(
             num_levels=num_pyramid_levels, 
@@ -214,38 +214,42 @@ class AdaptiveLaplacianPyramidUNet(nn.Module):
         print(f"Created {len(self.feature_adapters)} feature adapters")
         print(f"Using adaptive kernels of size {kernel_size}x{kernel_size}")
     
+    # def forward(self, x):
+    #     z = self.encoder(x)
+    #     # Add noise to bottleneck if enable
+    #     if self.v_noise > 0.0:
+    #         noise = self.v_noise * torch.randn_like(z)
+    #         z = z + noise
+    #     out = self.decoder(z)
+    #     # Crop to (28,28) if shape != (3,28,28)
+    #     out = F.nn.center_crop(out, [28, 28]) # check this once 
+    #     return out
+
     def forward(self, noisy_image):
-        """
-        Forward pass with adaptive kernel prediction
-        """
+        # Inject input noise if enabled
+        if hasattr(self, "v_noise") and self.v_noise > 0.0:
+            noise = self.v_noise * torch.randn_like(noisy_image)
+            noisy_image = noisy_image + noise
+
         # Get adaptive pyramid decomposition
         pyramid, adaptive_kernel = self.pyramid_encoder(noisy_image)
-        
+
         # Convert pyramid to encoder-like features
         features = [noisy_image]
-        
         for i, pyramid_level in enumerate(pyramid):
             if i < len(self.feature_adapters):
                 adapted_features = self.feature_adapters[i](pyramid_level)
                 features.append(adapted_features)
-        
-        # Pass through decoder
+
+        # Decoder and segmentation
         decoder_output = self.decoder(features)
-        
-        # Apply segmentation head
         denoised_features = self.segmentation_head(decoder_output)
-        
-        # Ensure output matches input size
+
+        # Resize if needed
         if denoised_features.shape[2:] != noisy_image.shape[2:]:
             denoised_features = F.interpolate(
-                denoised_features, 
-                size=noisy_image.shape[2:], 
-                mode='bilinear', 
-                align_corners=False
+                denoised_features, size=noisy_image.shape[2:], mode='bilinear', align_corners=False
             )
-        
-        # Residual connection
-        output = noisy_image + denoised_features
-        
-        return output, adaptive_kernel
 
+        output = noisy_image + denoised_features
+        return output, adaptive_kernel
