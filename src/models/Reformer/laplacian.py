@@ -6,6 +6,7 @@ from models.Reformer.SMP import PyramidSkipAdapter
 
 class SimpleEncoder(nn.Module):
     def __init__(self, in_channels=3, channels=[32, 64, 128, 256]):
+        
         super().__init__()
         layers = []
         prev_ch = in_channels
@@ -34,29 +35,38 @@ class SimpleEncoder(nn.Module):
 class SimpleDecoder(nn.Module):
     def __init__(self, channels=[256, 128, 64, 32], out_channels=3):
         super().__init__()
-        layers = []
-        for i in range(len(channels)-1):
-            layers.append(nn.Upsample(scale_factor=2, mode='bilinear', align_corners=False))
-            layers.append(nn.Conv2d(channels[i], channels[i+1], 3, padding=1))
-            layers.append(nn.ReLU(inplace=True))
-        self.decoder = nn.Sequential(*layers)
+        self.channels = channels
+        self.num_blocks = len(channels) - 1
+        self.upsamples = nn.ModuleList([
+            nn.Upsample(scale_factor=2, mode='bilinear', align_corners=False)
+            for _ in range(self.num_blocks)
+        ])
+        self.convs = nn.ModuleList([
+            nn.Conv2d(channels[i], channels[i+1], 3, padding=1)
+            for i in range(self.num_blocks)
+        ])
+        self.activations = nn.ModuleList([
+            nn.ReLU(inplace=True)
+            for _ in range(self.num_blocks)
+        ])
         self.out_conv = nn.Conv2d(channels[-1], out_channels, 3, padding=1)
 
     def forward(self, feats):
-        # feats is list of skip features (deep->shallow)
-        # Start decoding from deepest feature
         x = feats[-1]
-        for i in range(len(feats)-2, -1, -1):
-            x = self.decoder[3*i](x)  # Upsample
-            x = self.decoder[3*i+1](x)  # Conv
-            x = self.decoder[3*i+2](x)  # ReLU
-            # Fuse skip connection (additive)
-            if feats[i].shape == x.shape:
-                x = x + feats[i]
-            else:
-                x = x + F.interpolate(feats[i], size=x.shape[2:], mode='bilinear', align_corners=False)
+        for i in range(self.num_blocks):
+            x = self.upsamples[i](x)
+            x = self.convs[i](x)
+            x = self.activations[i](x)
+            skip_idx = len(feats) - 2 - i
+            if skip_idx >= 0:
+                skip = feats[skip_idx]
+                if skip.shape == x.shape:
+                    x = x + skip
+                else:
+                    x = x + F.interpolate(skip, size=x.shape[2:], mode='bilinear', align_corners=False)
         out = self.out_conv(x)
         return out
+
 
 
 class SimplePyramidDenoiser(nn.Module):
