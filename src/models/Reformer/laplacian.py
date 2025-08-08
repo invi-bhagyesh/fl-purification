@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from models.Reformer.laplacian import AdaptiveLaplacianPyramid
-from models.Reformer.laplacian import PyramidSkipAdapter
+from models.Reformer.SMP import AdaptiveLaplacianPyramid
+from models.Reformer.SMP import PyramidSkipAdapter
 
 class SimpleEncoder(nn.Module):
     def __init__(self, in_channels=3, channels=[32, 64, 128, 256]):
